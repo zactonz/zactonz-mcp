@@ -1,0 +1,75 @@
+{
+  "name": "@zactonz/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for the Zactonz APIs: screenshots, web page to Markdown, link previews, DNS, SSL, WHOIS, email checks, QR codes, barcodes, social card images, image conversion and translation as tools for AI assistants.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "zactonz",
+    "screenshot",
+    "markdown",
+    "link-preview",
+    "dns",
+    "ssl",
+    "whois",
+    "qr-code",
+    "barcode",
+    "og-image",
+    "email-verification",
+    "translation"
+  ],
+  "homepage": "https://developers.zactonz.com/",
+  "bugs": {
+    "url": "https://github.com/zactonz/zactonz-mcp/issues",
+    "email": "info@zactonz.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zactonz/zactonz-mcp.git"
+  },
+  "license": "MIT",
+  "author": "Zactonz Technologies (https://zactonz.com)",
+  "mcpName": "io.github.zactonz/zactonz-mcp",
+  "type": "module",
+  "bin": {
+    "zactonz-mcp": "bin/zactonz-mcp.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/zactonz-mcp.js",
+    "generate": "node tools/generate.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --project tsconfig.json",
+    "test": "node --test test/*.test.js",
+    "test:live": "node --test test/live/*.test.js",
+    "check": "node tools/generate.js --check && npm run lint && npm run format:check && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "ajv": "^8.17.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0"
+  }
+}

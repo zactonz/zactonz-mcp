@@ -1,0 +1,269 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OG Image",
+    "summary": "Generate a social-card image from a title, subtitle and logo.",
+    "description": "Renders an Open Graph or Twitter card image with your text on a clean template and returns the PNG, JPEG or WebP bytes. Cards are cached, so repeated requests for the same parameters cost nothing and answer with an `ETag`.\n\nBecause the image URL usually goes in a `<meta property=\"og:image\">` tag where no header can be sent, the endpoint also accepts a **signed URL**: add `k=<key id>` and `sig=<signature>` instead of the Authorization header. The signature is the first 40 hex characters of `HMAC-SHA256(secret, canonical query)`, where the canonical query is every parameter except `sig`, sorted by name and RFC 3986 encoded, and the secret is the signing secret shown for the key in the console.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "og-image",
+    "product": "og",
+    "category": "Media",
+    "order": 4,
+    "status": "stable"
+  },
+  "paths": {
+    "/og/": {
+      "get": {
+        "summary": "Render a social card",
+        "description": "Titles wrap to three lines and are scaled to fit. Text is always escaped; HTML is not interpreted. A logo is fetched once, embedded in the render and never hot-linked.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "image": {
+                          "type": "string",
+                          "description": "Hosted link to the card."
+                        },
+                        "format": {
+                          "type": "string",
+                          "description": "Image format."
+                        },
+                        "size": {
+                          "type": "string",
+                          "description": "Pixel size."
+                        },
+                        "cached": {
+                          "type": "boolean",
+                          "description": "Whether the card came from the cache."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "image": "https://api.zactonz.com/f/?p=og%2F20260917%2F1c0a…png&e=1790300000&s=9ab1…",
+                    "format": "png",
+                    "size": "1200x630",
+                    "cached": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Main text, up to 120 characters.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "Ship faster with the Zactonz APIs"
+          },
+          {
+            "name": "subtitle",
+            "in": "query",
+            "description": "Secondary line, up to 200 characters.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Screenshots, QR codes, link previews and more"
+          },
+          {
+            "name": "site",
+            "in": "query",
+            "description": "Short label shown at the bottom, for example your domain, up to 60 characters.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "developers.zactonz.com"
+          },
+          {
+            "name": "logo",
+            "in": "query",
+            "description": "Public URL of a PNG, JPEG, WebP, GIF or SVG logo, up to 512 KB.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "template",
+            "in": "query",
+            "description": "`card` (accent bar and logo), `minimal` (centred) or `split` (text beside an accent panel).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "card",
+                "minimal",
+                "split"
+              ],
+              "default": "card"
+            }
+          },
+          {
+            "name": "theme",
+            "in": "query",
+            "description": "`light` or `dark`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "light",
+                "dark"
+              ],
+              "default": "light"
+            }
+          },
+          {
+            "name": "accent",
+            "in": "query",
+            "description": "Accent colour as six hex digits.",
+            "schema": {
+              "type": "string",
+              "default": "ff6700"
+            }
+          },
+          {
+            "name": "bg",
+            "in": "query",
+            "description": "Background colour as six hex digits, overriding the theme.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Pixel size.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1200x630",
+                "1200x600",
+                "1080x1080",
+                "1600x900"
+              ],
+              "default": "1200x630"
+            }
+          },
+          {
+            "name": "font",
+            "in": "query",
+            "description": "`titillium`, `system` or `serif`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "titillium",
+                "system",
+                "serif"
+              ],
+              "default": "titillium"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`png` (default), `jpeg` or `webp`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg",
+                "webp"
+              ],
+              "default": "png"
+            }
+          },
+          {
+            "name": "resp",
+            "in": "query",
+            "description": "`image` streams the bytes. `json` returns a hosted link valid for seven days.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "json"
+              ],
+              "default": "image"
+            }
+          },
+          {
+            "name": "k",
+            "in": "query",
+            "description": "Key id, only for signed URLs.",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sig",
+            "in": "query",
+            "description": "Signature, only for signed URLs.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`title` is missing or a parameter is out of range."
+    },
+    {
+      "code": "422",
+      "title": "Logo unavailable",
+      "description": "The logo URL did not return an image."
+    },
+    {
+      "code": "503",
+      "title": "Renderer busy",
+      "description": "All render slots are in use. Retry after a few seconds."
+    },
+    {
+      "code": "504",
+      "title": "Timeout",
+      "description": "Rendering did not finish within the time limit."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mail Verifier",
+    "summary": "Check whether email addresses can actually receive mail.",
+    "description": "Verifies addresses by talking to the receiving mail server over SMTP, without sending a message. Send up to ten addresses per request and get a `valid` or `invalid` verdict for each.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "mail-verifier",
+    "product": "mverifier",
+    "category": "Email",
+    "order": 2,
+    "status": "stable"
+  },
+  "paths": {
+    "/mverifier/": {
+      "post": {
+        "summary": "Verify email addresses",
+        "description": "SMTP verification involves a live conversation with each recipient's mail server, so a request with ten addresses can take tens of seconds. Set your client timeout accordingly.\n\nSome providers accept every address at the SMTP stage (catch-all domains); those come back `valid` even when the mailbox does not exist.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "emails"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Your API key, repeated as a form field. Kept for existing integrations; the `Authorization: Bearer` header is the supported way to authenticate.",
+                    "example": "YOUR_API_KEY"
+                  },
+                  "emails": {
+                    "type": "string",
+                    "description": "One or more addresses separated by commas. At most ten per request.",
+                    "example": "jane@example.com, sales@zactonz.com"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A verdict per address and the time the check took.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "`\"200\"` on success (a string). See status codes below."
+                    },
+                    "message": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "Explanation when the request could not be processed, otherwise `null`."
+                    },
+                    "mails": {
+                      "type": "object",
+                      "description": "Map of address to `valid` or `invalid`."
+                    },
+                    "ttr": {
+                      "type": "number",
+                      "description": "Seconds the verification took."
+                    }
+                  }
+                },
+                "example": {
+                  "status": "200",
+                  "message": null,
+                  "reason": "",
+                  "mails": {
+                    "jane@example.com": "invalid",
+                    "sales@zactonz.com": "valid"
+                  },
+                  "ttr": 4.1823
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "Processed. If `mails` is absent, `message` explains why (no addresses sent, or more than ten)."
+    },
+    {
+      "code": 400,
+      "title": "Missing API key",
+      "description": "`key` was absent."
+    },
+    {
+      "code": 403,
+      "title": "Invalid key",
+      "description": "`key` is not recognised."
+    },
+    {
+      "code": 406,
+      "title": "Key expired",
+      "description": "The key's validity period has ended. Contact support to renew it."
+    }
+  ]
+}

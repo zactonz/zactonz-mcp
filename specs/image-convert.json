@@ -1,0 +1,229 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Image Convert",
+    "summary": "Convert, resize, crop and analyse images: WebP, AVIF, JPEG, PNG and GIF.",
+    "description": "Accepts an upload or a public URL, applies EXIF orientation, resizes with your chosen fit, optionally rotates, flips, blurs, sharpens or grayscales, strips all metadata and encodes to the format you ask for. `info=1` returns dimensions, format, transparency, orientation and a five-colour dominant palette instead of an image.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "image-convert",
+    "product": "image",
+    "category": "Media",
+    "order": 5,
+    "status": "stable"
+  },
+  "paths": {
+    "/image/": {
+      "post": {
+        "summary": "Transform an image",
+        "description": "Send the image as a `multipart/form-data` upload named `file`, or pass `url`. Images over 25 megapixels or 8000 pixels on a side are refused before decoding. SVG input is not accepted. Metadata is never carried over to the output.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "source": {
+                          "type": "object",
+                          "description": "Dimensions, format, byte size, EXIF orientation, animation and alpha of the input."
+                        },
+                        "output": {
+                          "type": "object",
+                          "description": "Dimensions, format, byte size and quality of the result. Absent with `info=1`."
+                        },
+                        "colors": {
+                          "type": "object",
+                          "description": "With `info=1`: `dominant` list of `{hex, share}` and the `average` colour."
+                        },
+                        "image": {
+                          "type": "string",
+                          "description": "With `resp=json`: hosted link valid for 24 hours."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "source": {
+                      "width": 1200,
+                      "height": 800,
+                      "format": "jpeg",
+                      "bytes": 184223,
+                      "orientation": 1,
+                      "animated": false,
+                      "alpha": false
+                    },
+                    "output": {
+                      "width": 800,
+                      "height": 533,
+                      "format": "webp",
+                      "bytes": 21874,
+                      "quality": 80
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "The image as a multipart upload. JPEG, PNG, GIF, WebP, AVIF or BMP, up to your plan's upload limit.",
+                    "format": "binary"
+                  },
+                  "url": {
+                    "type": "string",
+                    "description": "Public URL of the image instead of an upload.",
+                    "example": "https://zactonz.com/assets/images/logo.png"
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "Output format: `webp` (default), `avif`, `jpeg`, `png`, `gif`, or `keep` to keep the source format.",
+                    "enum": [
+                      "webp",
+                      "avif",
+                      "jpeg",
+                      "png",
+                      "gif",
+                      "keep"
+                    ],
+                    "default": "webp",
+                    "example": "webp"
+                  },
+                  "quality": {
+                    "type": "integer",
+                    "description": "1 to 100 for lossy formats.",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 82,
+                    "example": 80
+                  },
+                  "width": {
+                    "type": "integer",
+                    "description": "Target width in pixels, up to 8000. Omit to derive from the height.",
+                    "example": 800
+                  },
+                  "height": {
+                    "type": "integer",
+                    "description": "Target height in pixels, up to 8000. Omit to derive from the width."
+                  },
+                  "fit": {
+                    "type": "string",
+                    "description": "`inside` (default, shrink to fit, never enlarge), `cover` (fill and crop), `contain` (fit with padding, see `background`) or `fill` (stretch).",
+                    "enum": [
+                      "inside",
+                      "cover",
+                      "contain",
+                      "fill"
+                    ],
+                    "default": "inside"
+                  },
+                  "background": {
+                    "type": "string",
+                    "description": "Six hex digits used to flatten transparency and to pad `contain`. JPEG output is flattened on white when unset."
+                  },
+                  "rotate": {
+                    "type": "integer",
+                    "description": "Clockwise degrees, 0 to 359. EXIF orientation is always applied first."
+                  },
+                  "flip": {
+                    "type": "string",
+                    "description": "`h`, `v` or `both`.",
+                    "enum": [
+                      "h",
+                      "v",
+                      "both"
+                    ]
+                  },
+                  "grayscale": {
+                    "type": "boolean",
+                    "description": "`1` converts to grayscale."
+                  },
+                  "blur": {
+                    "type": "integer",
+                    "description": "Gaussian blur passes, 0 to 20."
+                  },
+                  "sharpen": {
+                    "type": "boolean",
+                    "description": "`1` applies a sharpening kernel."
+                  },
+                  "info": {
+                    "type": "boolean",
+                    "description": "`1` returns metadata and dominant colours as JSON without producing an image."
+                  },
+                  "resp": {
+                    "type": "string",
+                    "description": "`image` streams the bytes with `X-Image-Width` and `X-Image-Height` headers. `json` stores the result for 24 hours and returns its link with the metadata.",
+                    "enum": [
+                      "image",
+                      "json"
+                    ],
+                    "default": "image"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "No `file` upload and no `url` were sent, or a parameter is invalid."
+    },
+    {
+      "code": "413",
+      "title": "Too large",
+      "description": "The upload exceeds your plan's limit or the image exceeds 25 megapixels."
+    },
+    {
+      "code": "415",
+      "title": "Unsupported",
+      "description": "The bytes are not a JPEG, PNG, GIF, WebP, AVIF or BMP image."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

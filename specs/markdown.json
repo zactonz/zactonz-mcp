@@ -1,0 +1,254 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Web Page to Markdown",
+    "summary": "Clean article text from any page as Markdown, ready for LLM ingestion.",
+    "description": "Fetches a page, extracts the main article with a Readability algorithm, converts it to Markdown with headings, lists, code blocks, tables, absolute links and images, and returns it with the title, byline, excerpt and word count. Send `mode=full` for the whole body instead of the article, or POST raw `html` to convert your own markup.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "markdown",
+    "product": "markdown",
+    "category": "Web",
+    "order": 2,
+    "status": "stable"
+  },
+  "paths": {
+    "/markdown/": {
+      "get": {
+        "summary": "Convert a page to Markdown",
+        "description": "Scripts, styles, forms, iframes and hidden elements are removed. Output is capped by `max_chars` and flagged `truncated` when cut. Pages that only render with JavaScript need `render=1`, which costs 5 units instead of 2. Results are cached for an hour per URL and option set.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "description": "Final URL."
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Article title."
+                        },
+                        "byline": {
+                          "type": "string",
+                          "description": "Author when declared."
+                        },
+                        "excerpt": {
+                          "type": "string",
+                          "description": "Short summary."
+                        },
+                        "site_name": {
+                          "type": "string",
+                          "description": "Site name."
+                        },
+                        "language": {
+                          "type": "string",
+                          "description": "Page language."
+                        },
+                        "image": {
+                          "type": "string",
+                          "description": "Lead image URL."
+                        },
+                        "published_time": {
+                          "type": "string",
+                          "description": "Publication date as declared."
+                        },
+                        "mode": {
+                          "type": "string",
+                          "description": "`article` or `full`; falls back to `full` when no article could be isolated."
+                        },
+                        "word_count": {
+                          "type": "integer",
+                          "description": "Words in the Markdown."
+                        },
+                        "length": {
+                          "type": "integer",
+                          "description": "Characters in the Markdown."
+                        },
+                        "truncated": {
+                          "type": "boolean",
+                          "description": "Whether `max_chars` cut the output."
+                        },
+                        "markdown": {
+                          "type": "string",
+                          "description": "The Markdown."
+                        },
+                        "rendered": {
+                          "type": "boolean",
+                          "description": "Whether a browser was used."
+                        },
+                        "from_cache": {
+                          "type": "boolean",
+                          "description": "Whether the answer came from the cache."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "url": "https://developers.zactonz.com/apis/authentication/",
+                    "title": "Authentication",
+                    "byline": null,
+                    "excerpt": "Every request needs an API key, sent as a Bearer token in the Authorization header.",
+                    "site_name": null,
+                    "language": "en",
+                    "image": null,
+                    "published_time": null,
+                    "mode": "article",
+                    "word_count": 72,
+                    "length": 2688,
+                    "truncated": false,
+                    "markdown": "Every endpoint on `api.zactonz.com` requires an API key. Send it on each request in the `Authorization` header using the Bearer scheme:\n\n```\nAuthorization: Bearer YOUR_API_KEY\n```\n\n## Example\n\n…",
+                    "rendered": false,
+                    "from_cache": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "description": "The page to convert. Omit it and POST `html` to convert markup you already have.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://developers.zactonz.com/apis/authentication/"
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "description": "`article` (default) keeps the main content. `full` converts the whole body.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "article",
+                "full"
+              ],
+              "default": "article"
+            }
+          },
+          {
+            "name": "render",
+            "in": "query",
+            "description": "`1` loads the page in a headless browser first.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "images",
+            "in": "query",
+            "description": "`0` drops images from the output.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "links",
+            "in": "query",
+            "description": "`0` replaces links with their text.",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "max_chars",
+            "in": "query",
+            "description": "Maximum Markdown length, 1000 to 500000.",
+            "schema": {
+              "type": "integer",
+              "default": 100000,
+              "minimum": 1000,
+              "maximum": 500000
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`json` (default) or `text` to receive the Markdown body alone as `text/markdown`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "text"
+              ],
+              "default": "json"
+            }
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "description": "`1` bypasses the cache.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "Neither `url` nor `html` was provided, or the URL is not reachable from here."
+    },
+    {
+      "code": "413",
+      "title": "Too large",
+      "description": "The page or the posted HTML exceeds the size limit."
+    },
+    {
+      "code": "415",
+      "title": "Not HTML",
+      "description": "The URL does not serve HTML or plain text."
+    },
+    {
+      "code": "422",
+      "title": "Unreachable",
+      "description": "The page could not be fetched."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

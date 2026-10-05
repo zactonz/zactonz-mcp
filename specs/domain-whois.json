@@ -1,0 +1,189 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "WHOIS and RDAP",
+    "summary": "Registrar, dates, status and nameservers for a domain.",
+    "description": "Looks the domain up over RDAP, the structured successor to WHOIS, using the IANA bootstrap to find the right registry, and falls back to the classic port-43 WHOIS service for registries without RDAP. Returns the registrar, creation, update and expiry dates, EPP status codes, nameservers and DNSSEC flag.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "domain-whois",
+    "product": "domain",
+    "category": "Domain",
+    "order": 3,
+    "status": "stable"
+  },
+  "paths": {
+    "/domain/whois/": {
+      "get": {
+        "summary": "Look up a domain registration",
+        "description": "Subdomains are reduced to the registrable domain. Answers are cached for an hour. Registries rate-limit lookups; a `503` means the registry asked us to slow down.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "domain": {
+                          "type": "string",
+                          "description": "Registrable domain."
+                        },
+                        "source": {
+                          "type": "string",
+                          "description": "`rdap` or `whois`."
+                        },
+                        "registry": {
+                          "type": "string",
+                          "description": "RDAP base URL or WHOIS server used."
+                        },
+                        "registrar": {
+                          "type": "string",
+                          "description": "Registrar name."
+                        },
+                        "abuse_contact": {
+                          "type": "string",
+                          "description": "Registrar abuse email when published."
+                        },
+                        "status": {
+                          "type": "array",
+                          "description": "EPP status codes.",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "created": {
+                          "type": "string",
+                          "description": "Registration date."
+                        },
+                        "updated": {
+                          "type": "string",
+                          "description": "Last change."
+                        },
+                        "expires": {
+                          "type": "string",
+                          "description": "Expiry date."
+                        },
+                        "nameservers": {
+                          "type": "array",
+                          "description": "Delegated nameservers.",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "dnssec": {
+                          "type": "boolean",
+                          "description": "Whether the delegation is signed."
+                        },
+                        "raw": {
+                          "type": "string",
+                          "description": "Raw WHOIS text, only with `raw=1` on the fallback path."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "domain": "zactonz.com",
+                    "source": "rdap",
+                    "registry": "https://rdap.verisign.com/com/v1/",
+                    "registrar": "GoDaddy.com, LLC",
+                    "abuse_contact": "abuse@godaddy.com",
+                    "status": [
+                      "client delete prohibited",
+                      "client renew prohibited",
+                      "client transfer prohibited",
+                      "client update prohibited"
+                    ],
+                    "created": "2016-07-24T02:01:45Z",
+                    "updated": "2025-07-25T06:15:02Z",
+                    "expires": "2028-07-24T02:01:45Z",
+                    "nameservers": [
+                      "ns1.zctz.me",
+                      "ns2.zctz.me"
+                    ],
+                    "dnssec": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "description": "Domain name. A host name or URL is reduced to its registrable domain.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "zactonz.com"
+          },
+          {
+            "name": "raw",
+            "in": "query",
+            "description": "`1` includes the raw WHOIS text when the fallback service was used.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`domain` is missing or not a domain name."
+    },
+    {
+      "code": "404",
+      "title": "Not found",
+      "description": "The registry has no record for this domain."
+    },
+    {
+      "code": "422",
+      "title": "No service",
+      "description": "No RDAP or WHOIS service is known for that top-level domain, or it did not answer."
+    },
+    {
+      "code": "503",
+      "title": "Registry busy",
+      "description": "The registry is rate limiting; retry shortly."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

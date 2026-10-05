@@ -1,0 +1,262 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Link Preview",
+    "summary": "Title, description, image, favicon and feeds for any public URL.",
+    "description": "Fetches a page and returns the metadata a chat app, CMS or newsletter tool needs to show a rich preview: Open Graph and Twitter card tags, the canonical URL, icons, language, author, dates, theme colour, RSS and Atom feeds and the oEmbed endpoint. Results are cached for an hour.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "link-preview",
+    "product": "unfurl",
+    "category": "Web",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/unfurl/": {
+      "get": {
+        "summary": "Preview a link",
+        "description": "Pages are fetched with a normal browser `User-Agent` and a 2 MB limit. Set `render=1` for sites that only populate their tags with JavaScript; a rendered call costs 5 units instead of 1. Hosts that resolve to private or loopback addresses are refused.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "description": "URL as requested."
+                        },
+                        "final_url": {
+                          "type": "string",
+                          "description": "URL after redirects."
+                        },
+                        "status": {
+                          "type": "integer",
+                          "description": "HTTP status of the page."
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Best title from Open Graph, Twitter or the title tag."
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Best description."
+                        },
+                        "site_name": {
+                          "type": "string",
+                          "description": "Site name."
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "Open Graph type."
+                        },
+                        "canonical": {
+                          "type": "string",
+                          "description": "Canonical URL."
+                        },
+                        "image": {
+                          "type": "object",
+                          "description": "Preview image: `url`, `width`, `height`, `alt`, `type`, and with `verify_image` also `verified` and `bytes`."
+                        },
+                        "favicon": {
+                          "type": "string",
+                          "description": "Best icon URL."
+                        },
+                        "icons": {
+                          "type": "array",
+                          "description": "All declared icons with `rel`, `sizes` and `type`.",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "language": {
+                          "type": "string",
+                          "description": "Value of `<html lang>`."
+                        },
+                        "locale": {
+                          "type": "string",
+                          "description": "Open Graph locale."
+                        },
+                        "author": {
+                          "type": "string",
+                          "description": "Author."
+                        },
+                        "published_time": {
+                          "type": "string",
+                          "description": "Publication date as declared."
+                        },
+                        "modified_time": {
+                          "type": "string",
+                          "description": "Modification date as declared."
+                        },
+                        "keywords": {
+                          "type": "array",
+                          "description": "Meta keywords.",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "theme_color": {
+                          "type": "string",
+                          "description": "Theme colour."
+                        },
+                        "twitter": {
+                          "type": "object",
+                          "description": "`card`, `site`, `creator`."
+                        },
+                        "feeds": {
+                          "type": "array",
+                          "description": "RSS, Atom or JSON feeds with `url`, `type`, `title`.",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "oembed": {
+                          "type": "string",
+                          "description": "oEmbed endpoint if declared."
+                        },
+                        "rendered": {
+                          "type": "boolean",
+                          "description": "Whether a browser was used."
+                        },
+                        "from_cache": {
+                          "type": "boolean",
+                          "description": "Whether the answer came from the cache."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "url": "https://zactonz.com/products/",
+                    "final_url": "https://zactonz.com/products/",
+                    "status": 200,
+                    "title": "Products - Zactonz Technologies",
+                    "description": "Software built, run and supported by Zactonz: VitalLens, Zotiba, ClassTools24, NeuronFlow, WordPress plugins and themes, and cPanel & WHM plugins.",
+                    "site_name": null,
+                    "type": null,
+                    "canonical": "https://zactonz.com/products/",
+                    "image": null,
+                    "favicon": "https://zactonz.com/favicon.ico",
+                    "icons": [],
+                    "language": "en-us",
+                    "locale": null,
+                    "author": null,
+                    "published_time": null,
+                    "modified_time": null,
+                    "keywords": [],
+                    "theme_color": null,
+                    "twitter": {
+                      "card": null,
+                      "site": null,
+                      "creator": null
+                    },
+                    "feeds": [],
+                    "oembed": null,
+                    "rendered": false,
+                    "from_cache": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "description": "The page to preview. `https://` is assumed when the scheme is omitted.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "https://zactonz.com/products/"
+          },
+          {
+            "name": "render",
+            "in": "query",
+            "description": "`1` loads the page in a headless browser before reading its tags.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "verify_image",
+            "in": "query",
+            "description": "`1` downloads the preview image to confirm it exists and to report its real dimensions and type.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "description": "`1` bypasses the one-hour cache.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`url` is missing, malformed, or points at a host that is not reachable from here."
+    },
+    {
+      "code": "413",
+      "title": "Too large",
+      "description": "The page is larger than 2 MB."
+    },
+    {
+      "code": "415",
+      "title": "Not HTML",
+      "description": "The URL does not serve an HTML document."
+    },
+    {
+      "code": "422",
+      "title": "Unreachable",
+      "description": "The page could not be fetched, or it answered with an error status given in `upstream_status`."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

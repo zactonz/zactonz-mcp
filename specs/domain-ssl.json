@@ -1,0 +1,225 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SSL Inspector",
+    "summary": "Certificate, chain, expiry and TLS details for any host.",
+    "description": "Opens a TLS connection with SNI, captures the certificate chain and reports subject, issuer, alternative names, validity window, days remaining, key type and size, signature algorithm, negotiated protocol and cipher, hostname match and whether the chain verifies against the public CA store.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "domain-ssl",
+    "product": "domain",
+    "category": "Domain",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/domain/ssl/": {
+      "get": {
+        "summary": "Inspect a TLS certificate",
+        "description": "Results are cached for ten minutes unless `fresh=1`. Hosts that resolve to private addresses are refused.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "host": {
+                          "type": "string",
+                          "description": "Host inspected."
+                        },
+                        "ip": {
+                          "type": "string",
+                          "description": "Address connected to."
+                        },
+                        "port": {
+                          "type": "integer",
+                          "description": "Port."
+                        },
+                        "connect_ms": {
+                          "type": "integer",
+                          "description": "Handshake time in milliseconds."
+                        },
+                        "protocol": {
+                          "type": "string",
+                          "description": "Negotiated protocol, for example `TLSv1.3`."
+                        },
+                        "cipher": {
+                          "type": "string",
+                          "description": "Negotiated cipher."
+                        },
+                        "valid": {
+                          "type": "boolean",
+                          "description": "True when the chain is trusted, the name matches and the certificate is within its dates."
+                        },
+                        "hostname_match": {
+                          "type": "boolean",
+                          "description": "Whether the certificate covers `host`."
+                        },
+                        "trusted_chain": {
+                          "type": "boolean",
+                          "description": "Whether the chain verifies against the CA store."
+                        },
+                        "chain_error": {
+                          "type": "string",
+                          "description": "Verification error when the chain fails."
+                        },
+                        "expired": {
+                          "type": "boolean",
+                          "description": "Whether the certificate has expired."
+                        },
+                        "not_yet_valid": {
+                          "type": "boolean",
+                          "description": "Whether the certificate is not yet valid."
+                        },
+                        "self_signed": {
+                          "type": "boolean",
+                          "description": "Whether issuer equals subject."
+                        },
+                        "days_remaining": {
+                          "type": "integer",
+                          "description": "Days until expiry, negative when expired."
+                        },
+                        "certificate": {
+                          "type": "object",
+                          "description": "Leaf certificate: `subject`, `issuer`, `san`, `serial`, `signature_algorithm`, `key_type`, `key_bits`, `not_before_iso`, `not_after_iso`, `fingerprint_sha256`."
+                        },
+                        "chain": {
+                          "type": "array",
+                          "description": "Every certificate the server sent, in the same shape.",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "host": "zactonz.com",
+                    "ip": "67.43.236.62",
+                    "port": 443,
+                    "connect_ms": 212,
+                    "protocol": "TLSv1.3",
+                    "cipher": "TLS_AES_256_GCM_SHA384",
+                    "valid": true,
+                    "hostname_match": true,
+                    "trusted_chain": true,
+                    "chain_error": null,
+                    "expired": false,
+                    "not_yet_valid": false,
+                    "self_signed": false,
+                    "days_remaining": 87,
+                    "certificate": {
+                      "subject": {
+                        "CN": "zactonz.com"
+                      },
+                      "issuer": {
+                        "C": "US",
+                        "O": "Let's Encrypt",
+                        "CN": "R12"
+                      },
+                      "san": [
+                        "zactonz.com",
+                        "www.zactonz.com"
+                      ],
+                      "key_type": "RSA",
+                      "key_bits": 2048,
+                      "signature_algorithm": "RSA-SHA256",
+                      "not_before_iso": "2026-08-15T09:01:12+00:00",
+                      "not_after_iso": "2026-11-13T09:01:11+00:00"
+                    },
+                    "chain": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "description": "Host name, or a URL from which the host is taken.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "zactonz.com"
+          },
+          {
+            "name": "port",
+            "in": "query",
+            "description": "TLS port: 443, 8443, 465, 993, 995, 636 or 5061.",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                443,
+                8443,
+                465,
+                993,
+                995,
+                636,
+                5061
+              ],
+              "default": 443
+            }
+          },
+          {
+            "name": "fresh",
+            "in": "query",
+            "description": "`1` bypasses the cache.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`host` is missing, not a host name, on a disallowed port, or not reachable from here."
+    },
+    {
+      "code": "422",
+      "title": "No TLS",
+      "description": "The host did not complete a TLS handshake or presented no certificate."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

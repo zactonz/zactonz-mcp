@@ -1,0 +1,262 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Domain Email Health",
+    "summary": "MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT, BIMI and disposable-domain checks with a score.",
+    "description": "Audits everything a receiving mail server looks at before trusting mail from a domain: MX records and their reachability, SPF syntax and the ten-lookup limit, DKIM keys under common or supplied selectors with key sizes, DMARC policy and reporting, MTA-STS and TLS-RPT, BIMI, and whether the domain is a known disposable or free provider. Returns a 0 to 100 score, a letter grade and a findings list with codes and severities.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "email-domain",
+    "product": "email",
+    "category": "Email",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/email/domain/": {
+      "get": {
+        "summary": "Audit a domain for email",
+        "description": "Complements Mail Verifier, which checks individual mailboxes. Answers are cached for ten minutes. `probe=1` connects to the primary MX on port 25 to read the banner and STARTTLS support.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "domain": {
+                          "type": "string",
+                          "description": "Domain audited."
+                        },
+                        "score": {
+                          "type": "integer",
+                          "description": "0 to 100."
+                        },
+                        "grade": {
+                          "type": "string",
+                          "description": "A to F."
+                        },
+                        "disposable": {
+                          "type": "boolean",
+                          "description": "Known disposable-address provider."
+                        },
+                        "free_provider": {
+                          "type": "boolean",
+                          "description": "Consumer webmail provider."
+                        },
+                        "mx": {
+                          "type": "array",
+                          "description": "MX hosts with `priority`, `exchange`, `addresses` and, with `probe=1`, `smtp` (`reachable`, `banner`, `starttls`).",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "spf": {
+                          "type": "object",
+                          "description": "`present`, `record`, `valid`, `all` qualifier, DNS `lookups`, `mechanisms`."
+                        },
+                        "dkim": {
+                          "type": "array",
+                          "description": "Keys found: `selector`, `key_type`, `key_bits`, `revoked`, `testing`.",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "dmarc": {
+                          "type": "object",
+                          "description": "`present`, `record`, `policy`, `subdomain_policy`, `pct`, `rua`, `ruf`, `adkim`, `aspf`."
+                        },
+                        "mta_sts": {
+                          "type": "object",
+                          "description": "`present`, `record`, fetched `policy`."
+                        },
+                        "tls_rpt": {
+                          "type": "object",
+                          "description": "`present`, `record`."
+                        },
+                        "bimi": {
+                          "type": "object",
+                          "description": "`present`, `record`."
+                        },
+                        "findings": {
+                          "type": "array",
+                          "description": "Each with `code`, `severity` (`critical`, `warning`, `info`) and `message`.",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "checked_selectors": {
+                          "type": "array",
+                          "description": "Selectors that were queried.",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "checked_at": {
+                          "type": "string",
+                          "description": "Timestamp."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "domain": "zactonz.com",
+                    "score": 100,
+                    "grade": "A",
+                    "disposable": false,
+                    "free_provider": false,
+                    "mx": [
+                      {
+                        "priority": 0,
+                        "exchange": "mail.zactonz.com",
+                        "addresses": [
+                          "67.43.236.62"
+                        ]
+                      }
+                    ],
+                    "spf": {
+                      "present": true,
+                      "record": "v=spf1 +a +mx +ip4:67.43.236.62 ~all",
+                      "valid": true,
+                      "all": "~all",
+                      "lookups": 2,
+                      "mechanisms": [
+                        "+a",
+                        "+mx",
+                        "+ip4:67.43.236.62"
+                      ]
+                    },
+                    "dkim": [
+                      {
+                        "selector": "default",
+                        "key_type": "rsa",
+                        "key_bits": 2048,
+                        "revoked": false,
+                        "testing": false
+                      }
+                    ],
+                    "dmarc": {
+                      "present": true,
+                      "record": "v=DMARC1; p=reject; rua=mailto:dmarc@zactonz.com",
+                      "policy": "reject",
+                      "subdomain_policy": "reject",
+                      "pct": 100,
+                      "rua": [
+                        "dmarc@zactonz.com"
+                      ],
+                      "ruf": [],
+                      "adkim": "r",
+                      "aspf": "r"
+                    },
+                    "mta_sts": {
+                      "present": false,
+                      "record": null,
+                      "policy": null
+                    },
+                    "tls_rpt": {
+                      "present": false,
+                      "record": null
+                    },
+                    "bimi": {
+                      "present": false,
+                      "record": null
+                    },
+                    "findings": [
+                      {
+                        "code": "mx.single",
+                        "severity": "info",
+                        "message": "Only one MX host; a second one adds resilience."
+                      },
+                      {
+                        "code": "mta_sts.missing",
+                        "severity": "info",
+                        "message": "No MTA-STS. Inbound TLS is opportunistic only."
+                      }
+                    ],
+                    "checked_selectors": [
+                      "default",
+                      "google",
+                      "selector1",
+                      "selector2"
+                    ],
+                    "checked_at": "2026-09-17T14:05:40+00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "description": "Domain to audit. An email address is accepted and reduced to its domain.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "zactonz.com"
+          },
+          {
+            "name": "selectors",
+            "in": "query",
+            "description": "Comma-separated DKIM selectors to check in addition to the common ones, up to 20.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "google,mail"
+          },
+          {
+            "name": "probe",
+            "in": "query",
+            "description": "`1` connects to the primary MX to read its banner and STARTTLS support.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`domain` is missing or not a domain name."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

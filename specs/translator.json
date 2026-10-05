@@ -1,0 +1,127 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Translator",
+    "summary": "Translate text between 46 languages.",
+    "description": "Machine translation between any two supported languages. Send the text, the source language and the target language; the translated text comes back in `data.text`.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "translator",
+    "product": "translator",
+    "category": "Text",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/translator/": {
+      "post": {
+        "summary": "Translate text",
+        "description": "Language codes are two-letter ISO 639-1 codes. Supported: `en` `vi` `sq` `ar` `az` `bn` `bg` `ca` `zh` `zt` `cs` `da` `nl` `eo` `et` `fi` `fr` `de` `el` `he` `hi` `hu` `id` `ga` `it` `ja` `ko` `lv` `lt` `ms` `nb` `fa` `pl` `pt` `ro` `ru` `sk` `sl` `es` `sv` `tl` `th` `tr` `uk`. `zt` is Traditional Chinese.\n\nOn failure the reply has status `400` and an `errors` array instead of `data`.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "text",
+                  "to"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "Your API key, repeated as a form field. Kept for existing integrations; the `Authorization: Bearer` header is the supported way to authenticate.",
+                    "example": "YOUR_API_KEY"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "The text to translate.",
+                    "example": "Good morning, how are you?"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Source language code.",
+                    "default": "en"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Target language code.",
+                    "example": "es"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The translation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success, `400` on any failure."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "from": {
+                          "type": "string",
+                          "description": "Source language code that was used."
+                        },
+                        "to": {
+                          "type": "string",
+                          "description": "Target language code."
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "The translated text."
+                        }
+                      }
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Present on failure only. Human-readable reasons."
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "from": "en",
+                    "to": "es",
+                    "text": "Buenos días, ¿cómo estás?"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "Translated."
+    },
+    {
+      "code": 400,
+      "title": "Rejected",
+      "description": "Invalid key, a missing `text` or `to`, an unsupported language code, or the translation engine being unavailable. `errors` lists the reason."
+    }
+  ]
+}

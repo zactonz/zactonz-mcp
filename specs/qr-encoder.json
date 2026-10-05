@@ -1,0 +1,194 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QR Encoder",
+    "summary": "Generate a QR code as PNG, JPG, SVG or text.",
+    "description": "Generates a QR code from any text or URL and returns a hosted image, inline SVG markup, or the raw matrix as text. Images are kept at the returned URL, so you can hot-link them directly.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "qr-encoder",
+    "product": "qr",
+    "category": "Media",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/qr/enc/": {
+      "get": {
+        "summary": "Encode text or a URL as a QR code",
+        "description": "The endpoint sends `Access-Control-Allow-Origin: *`. Call it from your backend all the same, so your API key never reaches the browser.\n\nWith `format=svg` or `format=text` the markup is returned inline in `data.text` instead of a hosted file. With `resp=image` the image bytes are streamed directly, which makes the URL usable as an `<img src>`.",
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "required": true,
+            "description": "The text or URL to encode. URL-encode it when it contains `&` or `#`. Up to 4000 characters.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://zactonz.com"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`png` (default), `jpg`, `svg`, or `text` for a 0/1 matrix in JSON.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpg",
+                "svg",
+                "text"
+              ],
+              "default": "png"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "description": "Pixels per QR module, from `1` to `20`.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 4
+            },
+            "example": 6
+          },
+          {
+            "name": "accuracy",
+            "in": "query",
+            "description": "Error-correction level. Higher levels survive more damage but produce denser codes.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "normal",
+                "good",
+                "high"
+              ],
+              "default": "normal"
+            }
+          },
+          {
+            "name": "padding",
+            "in": "query",
+            "description": "Quiet zone around the code in modules, 0 to 20. Default 2.",
+            "schema": {
+              "type": "integer",
+              "default": 2
+            }
+          },
+          {
+            "name": "color",
+            "in": "query",
+            "description": "Foreground colour as six hex digits, for example `ff6700`, or a decimal RGB integer. Default black.",
+            "schema": {
+              "type": "string",
+              "format": "hex-color",
+              "default": "000000"
+            }
+          },
+          {
+            "name": "bgcolor",
+            "in": "query",
+            "description": "Background colour as six hex digits, for example `ff6700`, or a decimal RGB integer. Default white.",
+            "schema": {
+              "type": "string",
+              "format": "hex-color",
+              "default": "FFFFFF"
+            }
+          },
+          {
+            "name": "resp",
+            "in": "query",
+            "description": "`json` returns metadata and the image URL. `image` streams the image bytes directly with the right `Content-Type`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "image"
+              ],
+              "default": "json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful reply wraps the result in `data`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success. See status codes below."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "qr": {
+                          "type": "string",
+                          "description": "Absolute URL of the generated image (`png` and `jpg` formats)."
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Inline SVG markup or the text matrix (`svg` and `text` formats only)."
+                        },
+                        "size": {
+                          "type": "integer",
+                          "description": "Module size that was applied."
+                        },
+                        "accuracy": {
+                          "type": "string",
+                          "description": "Error-correction level as a single letter: `L`, `M`, `Q` or `H`."
+                        },
+                        "format": {
+                          "type": "string",
+                          "description": "Output format that was applied."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "qr": "https://api.zactonz.com/qr/enc/i/qDB76_184XsQzKpYx4e.png",
+                    "size": 6,
+                    "accuracy": "M",
+                    "format": "png"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "The code was generated."
+    },
+    {
+      "code": 400,
+      "title": "Missing content",
+      "description": "`content` was empty or absent. `data` carries the message."
+    },
+    {
+      "code": 500,
+      "title": "Encoding failed",
+      "description": "The encoder could not build the matrix. Shorten the content or lower `accuracy`."
+    }
+  ]
+}

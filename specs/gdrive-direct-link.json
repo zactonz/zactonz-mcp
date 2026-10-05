@@ -1,0 +1,84 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Google Drive Direct Link",
+    "summary": "Turn a Google Drive share link into a direct download URL.",
+    "description": "Resolves a Google Drive share link (the `file/d/<id>/view` or `open?id=` forms) to the URL that serves the file bytes directly, so it can be used in download buttons, `wget` scripts or media tags. The file must be shared with \"anyone with the link\".\n\nThe link is built from the file id Google issues for that share URL. The endpoint does not check that the file exists or is shared publicly; a private or deleted file yields a link that Google will refuse. Only Google Drive and Google Docs hosts are accepted.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "gdrive-direct-link",
+    "product": "gdrive",
+    "category": "Files",
+    "order": 1,
+    "status": "stable"
+  },
+  "paths": {
+    "/gdrive/directlink/": {
+      "get": {
+        "summary": "Resolve a share link",
+        "description": "Direct links for large files pass through Google's virus-scan interstitial; the resolver follows it for you. Google may rate-limit files that are downloaded very frequently, in which case the reply is a `403` with the explanation in `data`.",
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "description": "The Google Drive share link.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://drive.google.com/file/d/0B8vQ0mnbCTFRcW1ZclhtS3ZKZGs/view"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The direct download URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success. See status codes below."
+                    },
+                    "data": {
+                      "type": "string",
+                      "description": "The direct download URL, or an explanation for non-200 statuses."
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": "https://drive.usercontent.google.com/download?id=0B8vQ0mnbCTFRcW1ZclhtS3ZKZGs&export=download"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "Resolved."
+    },
+    {
+      "code": 400,
+      "title": "Missing url",
+      "description": "`url` was empty or absent."
+    },
+    {
+      "code": 403,
+      "title": "Could not resolve",
+      "description": "The file is private, was removed, or Google is throttling it. `data` carries the reason."
+    }
+  ]
+}

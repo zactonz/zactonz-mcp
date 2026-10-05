@@ -1,0 +1,102 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "QR Decoder",
+    "summary": "Read the contents of a QR code from an image URL or base64 data.",
+    "description": "Downloads or decodes the image you point it at, finds the QR code in it and returns the encoded text. Remote images are capped at 8 MB, and URLs that resolve to private or loopback addresses are refused.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "qr-decoder",
+    "product": "qr",
+    "category": "Media",
+    "order": 2,
+    "status": "stable"
+  },
+  "paths": {
+    "/qr/dec/": {
+      "get": {
+        "summary": "Decode a QR code",
+        "description": "GET is fine for image URLs. When sending base64 data, use POST with the same field names so the payload is not limited by URL length.",
+        "parameters": [
+          {
+            "name": "image",
+            "in": "query",
+            "required": true,
+            "description": "An `http` or `https` URL of the image, or the base64-encoded image bytes when `format=base64`. A `data:image/...;base64,` prefix is accepted and stripped.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "https://api.zactonz.com/qr/enc/i/qDB76_184XsQzKpYx4e.png"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "How `image` should be read. `link` is an alias of `url`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "url",
+                "base64"
+              ],
+              "default": "url"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "On success `data` is the decoded text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success. See status codes below."
+                    },
+                    "data": {
+                      "type": "string",
+                      "description": "The text encoded in the QR code, or an error message for non-200 statuses."
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": "https://zactonz.com"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "A code was found and decoded."
+    },
+    {
+      "code": 400,
+      "title": "Missing image",
+      "description": "`image` was empty or absent."
+    },
+    {
+      "code": 401,
+      "title": "Image not usable",
+      "description": "The URL was invalid, not `http(s)`, pointed at a private host, exceeded 8 MB, or the base64 payload could not be decoded. `data` says which."
+    },
+    {
+      "code": 422,
+      "title": "No QR code found",
+      "description": "The image loaded but no QR code could be read from it."
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Screenshot (HTML)",
+    "summary": "Render HTML you send to a JPEG, PNG or PDF.",
+    "description": "Stages the markup you post on the API host, renders it in headless Chromium at the requested viewport and saves the capture. The staged page is deleted as soon as the capture is done; the capture itself stays at the returned URL under `/screen/html/s/`.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "screenshot-html",
+    "product": "screen",
+    "category": "Media",
+    "order": 4,
+    "status": "stable"
+  },
+  "paths": {
+    "/screen/html/": {
+      "post": {
+        "summary": "Capture an HTML document",
+        "description": "Send a complete document (`<html>…</html>`). Relative URLs inside it will not resolve, so use absolute URLs for images, fonts and stylesheets. PDF output uses Chromium's default page size and prints without backgrounds.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "html"
+                ],
+                "properties": {
+                  "html": {
+                    "type": "string",
+                    "description": "The HTML document to render, up to 2 MB. Larger bodies are rejected with `413`.",
+                    "example": "<html><body><h1>Invoice #1042</h1></body></html>"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "description": "Viewport width in pixels, 200 to 3840. Values outside the range are clamped. Default 1280.",
+                    "default": 1280,
+                    "minimum": 200,
+                    "maximum": 3840
+                  },
+                  "height": {
+                    "type": "integer",
+                    "description": "Viewport height in pixels, 150 to 4320. Values outside the range are clamped. Default 1024.",
+                    "default": 1024,
+                    "minimum": 150,
+                    "maximum": 4320
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "jpeg",
+                      "png",
+                      "webp",
+                      "pdf"
+                    ],
+                    "default": "jpeg",
+                    "description": "Output type. `jpeg` (default), `png`, `webp`, or `pdf` for a paged document."
+                  },
+                  "quality": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "JPEG quality from 1 to 100. Default 100. Ignored for other formats.",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metadata and the URL of the saved capture.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "`\"200\"` on success (a string). See status codes below."
+                    },
+                    "width": {
+                      "type": "integer",
+                      "description": "Viewport width that was used."
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "Viewport height that was used."
+                    },
+                    "data": {
+                      "type": "string",
+                      "description": "Absolute URL of the saved image or PDF, or an error message."
+                    }
+                  }
+                },
+                "example": {
+                  "status": "200",
+                  "width": 1280,
+                  "height": 1024,
+                  "data": "https://api.zactonz.com/screen/html/s/Pm2Lq_147xVt8Nc3Rz0Kw.jpeg"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "The capture was saved. Note that this endpoint returns `status` as a string."
+    },
+    {
+      "code": 400,
+      "title": "Bad request",
+      "description": "`html` was missing, or `quality` was `0` for JPEG output."
+    },
+    {
+      "code": "413",
+      "title": "Too large",
+      "description": "The HTML body exceeds 2 MB."
+    },
+    {
+      "code": "502",
+      "title": "Not rendered",
+      "description": "The browser could not load or capture the page within the time limit."
+    }
+  ]
+}

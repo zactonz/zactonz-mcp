@@ -1,0 +1,148 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DNS Lookup",
+    "summary": "A, AAAA, MX, TXT, NS, CNAME, SOA, CAA and SRV records with DNSSEC status.",
+    "description": "Resolves the record types you ask for, or a default set, and reports whether the zone publishes DS records and whether the resolver validated the answer.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "domain-dns",
+    "product": "domain",
+    "category": "Domain",
+    "order": 2,
+    "status": "stable"
+  },
+  "paths": {
+    "/domain/dns/": {
+      "get": {
+        "summary": "Look up DNS records",
+        "description": "Answers are cached for two minutes.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Name queried."
+                        },
+                        "records": {
+                          "type": "object",
+                          "description": "One list per type. A and AAAA carry `address`; MX `priority` and `exchange`; TXT `text`; CNAME, NS and PTR `target`; SOA the zone fields; CAA `flags`, `tag`, `value`; SRV `priority`, `weight`, `port`, `target`. Every record has `name` and `ttl`."
+                        },
+                        "dnssec": {
+                          "type": "object",
+                          "description": "`ds_records` and `validated_by_resolver`."
+                        },
+                        "queried_at": {
+                          "type": "string",
+                          "description": "Timestamp."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "name": "zactonz.com",
+                    "records": {
+                      "A": [
+                        {
+                          "name": "zactonz.com",
+                          "ttl": 300,
+                          "address": "67.43.236.62"
+                        }
+                      ],
+                      "MX": [
+                        {
+                          "name": "zactonz.com",
+                          "ttl": 300,
+                          "priority": 0,
+                          "exchange": "mail.zactonz.com"
+                        }
+                      ],
+                      "TXT": [
+                        {
+                          "name": "zactonz.com",
+                          "ttl": 300,
+                          "text": "v=spf1 +a +mx +ip4:67.43.236.62 ~all"
+                        }
+                      ]
+                    },
+                    "dnssec": {
+                      "ds_records": false,
+                      "validated_by_resolver": false
+                    },
+                    "queried_at": "2026-09-17T14:02:11+00:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Host or domain name.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "zactonz.com"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Comma-separated record types, or `ALL` for A, AAAA, MX, TXT, NS, CNAME, SOA and CAA.",
+            "schema": {
+              "type": "string",
+              "default": "ALL"
+            },
+            "example": "A,MX,TXT"
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`name` is missing or a record type is not supported."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Screenshot (URL)",
+    "summary": "Render any web page to JPEG, PNG or PDF at a chosen viewport.",
+    "description": "Loads the page in a headless Chromium instance, waits for `delay` seconds so late-loading content settles, and saves a capture. The reply carries the URL of the saved file under `/screen/url/s/`.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "screenshot-url",
+    "product": "screen",
+    "category": "Media",
+    "order": 3,
+    "status": "stable"
+  },
+  "paths": {
+    "/screen/url/": {
+      "post": {
+        "summary": "Capture a URL",
+        "description": "Rendering a page takes a few seconds; allow a client timeout of at least 60 seconds. Pass `download=1` to receive the file bytes directly (with `Content-Disposition: attachment`) instead of a JSON reply.\n\nThe PDF options (`orientation`, margins, paper size and `scale`) only apply when `format=pdf`. Margins and paper dimensions are in inches.",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "description": "Absolute URL of the page to capture.",
+                    "example": "https://zactonz.com"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "description": "Viewport width in pixels, 200 to 3840. Values outside the range are clamped. Default 1280.",
+                    "default": 1280,
+                    "minimum": 200,
+                    "maximum": 3840
+                  },
+                  "height": {
+                    "type": "integer",
+                    "description": "Viewport height in pixels, 150 to 4320. Values outside the range are clamped. Default 1024.",
+                    "default": 1024,
+                    "minimum": 150,
+                    "maximum": 4320
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "jpeg",
+                      "png",
+                      "webp",
+                      "pdf"
+                    ],
+                    "default": "jpeg",
+                    "description": "Output type. `jpeg` (default), `png`, `webp`, or `pdf` for a paged document."
+                  },
+                  "quality": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "JPEG quality from 1 to 100. Default 100. Ignored for other formats.",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "delay": {
+                    "type": "integer",
+                    "default": 5,
+                    "description": "Seconds to wait after the page has loaded before capturing, 0 to 15. Default 5.",
+                    "minimum": 0,
+                    "maximum": 15
+                  },
+                  "download": {
+                    "type": "string",
+                    "description": "Any value. Stream the file instead of returning JSON."
+                  },
+                  "orientation": {
+                    "type": "string",
+                    "enum": [
+                      "portrait",
+                      "landscape"
+                    ],
+                    "default": "portrait",
+                    "description": "PDF only."
+                  },
+                  "paperWidth": {
+                    "type": "number",
+                    "default": 6,
+                    "description": "PDF only. Paper width in inches."
+                  },
+                  "paperHeight": {
+                    "type": "number",
+                    "default": 6,
+                    "description": "PDF only. Paper height in inches."
+                  },
+                  "marginTop": {
+                    "type": "number",
+                    "default": 0.4,
+                    "description": "PDF only. Also `marginBottom`, `marginLeft`, `marginRight`. Inches."
+                  },
+                  "scale": {
+                    "type": "number",
+                    "default": 1,
+                    "description": "PDF only. Render scale."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Metadata and the URL of the saved capture.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "description": "`\"200\"` on success (a string). See status codes below."
+                    },
+                    "width": {
+                      "type": "integer",
+                      "description": "Viewport width that was used."
+                    },
+                    "height": {
+                      "type": "integer",
+                      "description": "Viewport height that was used."
+                    },
+                    "data": {
+                      "type": "string",
+                      "description": "Absolute URL of the saved image or PDF, or an error message."
+                    }
+                  }
+                },
+                "example": {
+                  "status": "200",
+                  "width": 1280,
+                  "height": 1024,
+                  "data": "https://api.zactonz.com/screen/url/s/Kd8Qw_213pLm2Xc9Vb1Tn.jpeg"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": 200,
+      "title": "OK",
+      "description": "The capture was saved. Note that this endpoint returns `status` as a string."
+    },
+    {
+      "code": 400,
+      "title": "Bad request",
+      "description": "`url` was missing, or `quality` was `0` for JPEG output."
+    },
+    {
+      "code": "502",
+      "title": "Not rendered",
+      "description": "The browser could not load or capture the page within the time limit."
+    }
+  ]
+}

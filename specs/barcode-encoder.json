@@ -1,0 +1,216 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Barcode Encoder",
+    "summary": "Render Code 128, Code 39, EAN, UPC, ITF-14 and Codabar barcodes as PNG, SVG or JPEG.",
+    "description": "Encodes a value as a 1D barcode and returns the image bytes directly, so the URL can be used as an `<img src>` from your own backend, or a JSON envelope with a temporary hosted link when `resp=json` is set. Check digits are verified for EAN and UPC values and computed when you send the number without one.",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "https://api.zactonz.com"
+    }
+  ],
+  "x-zactonz": {
+    "slug": "barcode-encoder",
+    "product": "barcode",
+    "category": "Media",
+    "order": 3,
+    "status": "stable"
+  },
+  "paths": {
+    "/barcode/": {
+      "get": {
+        "summary": "Render a barcode",
+        "description": "Images are returned with `Cache-Control: public, max-age=86400`. Hosted links from `resp=json` stay valid for 24 hours.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "description": "`200` on success."
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "The result.",
+                      "properties": {
+                        "barcode": {
+                          "type": "string",
+                          "description": "Temporary link to the rendered image."
+                        },
+                        "type": {
+                          "type": "string",
+                          "description": "Symbology used."
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "Value encoded."
+                        },
+                        "format": {
+                          "type": "string",
+                          "description": "Image format."
+                        },
+                        "width": {
+                          "type": "integer",
+                          "description": "Pixel width, null for SVG."
+                        },
+                        "height": {
+                          "type": "integer",
+                          "description": "Pixel height, null for SVG."
+                        },
+                        "expires_in": {
+                          "type": "integer",
+                          "description": "Seconds the link stays valid."
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": 200,
+                  "data": {
+                    "barcode": "https://api.zactonz.com/f/?p=barcode%2F20260917%2F87ccac83f320062f1d0e9a41.png&e=1789731200&s=2f7c…",
+                    "type": "upca",
+                    "content": "12345678901",
+                    "format": "png",
+                    "width": 285,
+                    "height": 60,
+                    "expires_in": 86400
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "description": "The value to encode. Each symbology has its own alphabet and length, listed under the `type` parameter.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "ZCTZ-0042"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "`code128` (printable ASCII, up to 80 characters), `code39` (digits, capitals and `- . $ / + %`), `code93`, `ean13` (12 digits, or 13 with the check digit), `ean8` (7 or 8 digits), `upca` (11 or 12 digits), `upce` (6 to 8 digits), `itf14` (13 or 14 digits), `codabar` (a start and stop letter A to D around digits).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "code128",
+                "code39",
+                "code93",
+                "ean13",
+                "ean8",
+                "upca",
+                "upce",
+                "itf14",
+                "codabar"
+              ],
+              "default": "code128"
+            },
+            "example": "code128"
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "`png` (default), `svg` or `jpg`.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "png",
+                "svg",
+                "jpg"
+              ],
+              "default": "png"
+            }
+          },
+          {
+            "name": "scale",
+            "in": "query",
+            "description": "Width of the narrowest bar in pixels, 1 to 10.",
+            "schema": {
+              "type": "integer",
+              "default": 2,
+              "minimum": 1,
+              "maximum": 10
+            },
+            "example": 3
+          },
+          {
+            "name": "height",
+            "in": "query",
+            "description": "Bar height in pixels, 20 to 300.",
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 20,
+              "maximum": 300
+            }
+          },
+          {
+            "name": "color",
+            "in": "query",
+            "description": "Bar colour as six hex digits.",
+            "schema": {
+              "type": "string",
+              "default": "000000"
+            }
+          },
+          {
+            "name": "bgcolor",
+            "in": "query",
+            "description": "Background colour as six hex digits.",
+            "schema": {
+              "type": "string",
+              "default": "ffffff"
+            }
+          },
+          {
+            "name": "resp",
+            "in": "query",
+            "description": "`image` streams the bytes. `json` stores the image for 24 hours and returns its link with the dimensions.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "json"
+              ],
+              "default": "image"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "x-status-codes": [
+    {
+      "code": "400",
+      "title": "Bad request",
+      "description": "`content` is missing, or it does not fit the chosen symbology. The message says which rule failed."
+    },
+    {
+      "code": "401",
+      "title": "Unauthorized",
+      "description": "The Authorization header is missing or the key is not recognised."
+    },
+    {
+      "code": "403",
+      "title": "Forbidden",
+      "description": "The key is not licensed for this product."
+    },
+    {
+      "code": "429",
+      "title": "Too many requests",
+      "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+    }
+  ]
+}
