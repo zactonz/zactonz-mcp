@@ -6,13 +6,16 @@ It runs on your machine over stdio and needs Node.js 18 or newer.
 
 ## Install
 
-> **Not on npm yet.** `@zactonz/mcp` has not been published, so the `npx` commands below do not
-> work yet. Until it is, install from source — the steps are at the end of this section and take
-> about a minute.
+There is nothing to install ahead of time. The client configurations below run
+`npx -y @zactonz/mcp`, which fetches [the package](https://www.npmjs.com/package/@zactonz/mcp) on
+first use and keeps it cached. You need [Node.js](https://nodejs.org) 18 or newer.
+
+Skip to [Setup](#setup) unless you want to run it from a checkout.
 
 ### From source
 
-Needs [Node.js](https://nodejs.org) 18 or newer and git.
+Useful for pinning a particular commit, working on the server, or running without a registry.
+Needs Node.js 18 or newer and git.
 
 ```bash
 git clone https://github.com/zactonz/zactonz-mcp.git
@@ -61,11 +64,10 @@ To update later: `git pull && npm ci --omit=dev`.
 ## Setup
 
 1. Create a key for each product you want to use in the [API console](https://developers.zactonz.com/console/). There is a free plan.
-2. Install the server — see [Install](#install) above.
-3. Add the server to your MCP client, with the keys in `ZACTONZ_API_KEYS` separated by commas.
+2. Add the server to your MCP client, with the keys in `ZACTONZ_API_KEYS` separated by commas.
 
-The examples below use `npx -y @zactonz/mcp`, which will work once the package is published. Until
-then substitute the `"command"` and `"args"` shown under [From source](#from-source).
+If you installed [from source](#from-source) instead, substitute the `"command"` and `"args"` shown
+there for the `npx` form used below.
 
 Clients that read an `mcpServers` block, such as Claude Desktop, Cursor and Windsurf:
 
