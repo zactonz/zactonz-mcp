@@ -4,10 +4,68 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for the [Zact
 
 It runs on your machine over stdio and needs Node.js 18 or newer.
 
+## Install
+
+> **Not on npm yet.** `@zactonz/mcp` has not been published, so the `npx` commands below do not
+> work yet. Until it is, install from source — the steps are at the end of this section and take
+> about a minute.
+
+### From source
+
+Needs [Node.js](https://nodejs.org) 18 or newer and git.
+
+```bash
+git clone https://github.com/zactonz/zactonz-mcp.git
+cd zactonz-mcp
+npm ci --omit=dev
+```
+
+That is the whole install: two runtime dependencies, no build step. Check it starts — it will wait
+for input, so press Ctrl+C to leave:
+
+```bash
+node bin/zactonz-mcp.js
+```
+
+Then point your client at the absolute path, in place of the `npx` form used below:
+
+```json
+{
+  "mcpServers": {
+    "zactonz": {
+      "command": "node",
+      "args": ["/absolute/path/to/zactonz-mcp/bin/zactonz-mcp.js"],
+      "env": {
+        "ZACTONZ_API_KEYS": "zk_screen_…,zk_markdown_…"
+      }
+    }
+  }
+}
+```
+
+Use the real absolute path — `~` and relative paths are not expanded by most clients. On Windows,
+write it with forward slashes or escaped backslashes, for example
+`C:/Users/you/zactonz-mcp/bin/zactonz-mcp.js`.
+
+For Claude Code:
+
+```bash
+claude mcp add zactonz --env ZACTONZ_API_KEYS="zk_screen_…" -- node /absolute/path/to/zactonz-mcp/bin/zactonz-mcp.js
+```
+
+If you would rather have `zactonz-mcp` on your `PATH`, run `npm link` in the clone, then use
+`"command": "zactonz-mcp"` with no `args`.
+
+To update later: `git pull && npm ci --omit=dev`.
+
 ## Setup
 
 1. Create a key for each product you want to use in the [API console](https://developers.zactonz.com/console/). There is a free plan.
-2. Add the server to your MCP client, with the keys in `ZACTONZ_API_KEYS` separated by commas.
+2. Install the server — see [Install](#install) above.
+3. Add the server to your MCP client, with the keys in `ZACTONZ_API_KEYS` separated by commas.
+
+The examples below use `npx -y @zactonz/mcp`, which will work once the package is published. Until
+then substitute the `"command"` and `"args"` shown under [From source](#from-source).
 
 Clients that read an `mcpServers` block, such as Claude Desktop, Cursor and Windsurf:
 

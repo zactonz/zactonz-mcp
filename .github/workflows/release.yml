@@ -1,6 +1,8 @@
 name: Release
 
-# Publishes to npm when a version tag is pushed. Needs the NPM_TOKEN secret.
+# Publishes to npm when a version tag is pushed. Publishing is skipped, rather
+# than failed, until the NPM_TOKEN secret exists: the secrets context cannot be
+# read from an `if`, so it is mapped to an env var the steps can test.
 on:
   push:
     tags: ['v*']
@@ -12,6 +14,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +27,21 @@ jobs:
       - run: npm run check
       - name: Tag matches package version
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
-      - run: npm publish --provenance --access public
+      - name: Verify the package builds
+        run: npm pack --dry-run
+      - name: Publish to npm
+        if: env.HAS_NPM_TOKEN == 'true'
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Report a skipped publish
+        if: env.HAS_NPM_TOKEN != 'true'
+        run: |
+          {
+            echo "### Publish skipped"
+            echo
+            echo "No \`NPM_TOKEN\` secret is set, so \`$GITHUB_REF_NAME\` was built and checked but not published."
+            echo
+            echo "To publish: create the npm org, add a granular access token with write access to"
+            echo "\`@zactonz/*\` as the repository secret \`NPM_TOKEN\`, then re-run this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
