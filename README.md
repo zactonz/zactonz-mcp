@@ -2,7 +2,7 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the [Zactonz APIs](https://developers.zactonz.com/apis/). It lets an AI assistant capture a screenshot of a web page, read a page as Markdown, preview a link, look up DNS, SSL and WHOIS records, check a domain's email setup, verify addresses, generate QR codes, barcodes and social card images, convert images and translate text.
 
-It runs on your machine over stdio and needs Node.js 18 or newer.
+It runs on your machine: over stdio, started by your MCP client, or as a small HTTP service that several agents share. It needs Node.js 18 or newer.
 
 ## Install
 
@@ -113,6 +113,68 @@ A Zactonz key works for one product, and the product is part of the key: `zk_scr
 
 Keys stay in the server process. They are sent to `api.zactonz.com` in the `Authorization` header and nowhere else, and they are never included in anything returned to the assistant.
 
+## Serving several agents
+
+A client that starts the server itself gets a process of its own, which is what stdio is for. A
+self-hosted agent is often not that: there are several of them, they come and go, and they run where
+no parent process can start one. Run the server once instead and let them connect over HTTP:
+
+```bash
+ZACTONZ_API_KEYS="zk_screen_…,zk_markdown_…" npx -y @zactonz/mcp --http
+```
+
+It listens on `http://127.0.0.1:8808/mcp`, loopback only. Point a client at that URL as a remote MCP
+server. For Claude Code:
+
+```bash
+claude mcp add --transport http zactonz http://127.0.0.1:8808/mcp
+```
+
+### Keys per request
+
+A request may bring its own keys, in the `x-zactonz-api-keys` header or as a bearer token:
+
+```bash
+curl -sS http://127.0.0.1:8808/mcp -H 'x-zactonz-api-keys: zk_qr_…' -H 'accept: application/json, text/event-stream' -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Those keys are used for that request and no other: the tools the caller is offered, and the quota a
+call spends, follow the key in the header. So two agents holding different keys can share one process
+without seeing each other's tools or spending each other's quota.
+
+A request that brings no keys is answered with the keys in `ZACTONZ_API_KEYS`. Set
+`ZACTONZ_MCP_REQUIRE_KEY_HEADER=1` to refuse it instead, and make every caller bring its own.
+
+With Claude Code the header goes on the server:
+
+```bash
+claude mcp add --transport http zactonz http://127.0.0.1:8808/mcp --header "x-zactonz-api-keys: zk_qr_…"
+```
+
+### In a container
+
+Inside a container the server has to bind every interface to be reachable through a port mapping:
+
+```bash
+docker run --rm -p 8808:8808 -e ZACTONZ_MCP_HOST=0.0.0.0 -e ZACTONZ_API_KEYS="zk_screen_…" node:20-alpine npx -y @zactonz/mcp --http
+```
+
+Binding away from loopback makes the server reachable from outside the machine, and it has no
+authentication of its own: a caller is whoever holds a Zactonz key. The server says as much on
+stderr when it starts. Put TLS in front of it, name the hosts it should answer to in
+`ZACTONZ_MCP_ALLOWED_HOSTS`, and consider requiring the key header.
+
+`GET /healthz` answers a liveness probe with the version, how many tools there are and whether the
+process has keys — never which products they are for. It makes no request and spends nothing.
+
+### What it does not keep
+
+Nothing is remembered between requests. Each one is answered by a server built around that request's
+keys and discarded with it, which is what keeps the keys from reaching the next caller. There is no
+session, so `GET /mcp` and `DELETE /mcp` answer `405`: this server has nothing to stream and nothing
+to end. Requests beyond `ZACTONZ_MCP_MAX_REQUESTS` at once are refused with a `503` and a
+`Retry-After` rather than queued.
+
 ## Tools
 
 | Tool                       | Purpose                                          | Key          |
@@ -177,6 +239,21 @@ A tool call is given 55 seconds in total, because MCP clients stop waiting after
 
 Without keys the server still starts and lists every tool, and each call answers with setup instructions. Values in `ZACTONZ_API_KEYS` that are not Zactonz keys are ignored and reported on stderr.
 
+These apply only when the server is [listening over HTTP](#serving-several-agents):
+
+| Variable                         | Purpose                                                        | Default     |
+| -------------------------------- | -------------------------------------------------------------- | ----------- |
+| `ZACTONZ_MCP_TRANSPORT`          | `stdio` or `http`; the same as `--http`                        | `stdio`     |
+| `ZACTONZ_MCP_HOST`               | Address to bind; the same as `--host`                          | `127.0.0.1` |
+| `ZACTONZ_MCP_PORT`               | Port to bind; the same as `--port`. `0` takes any free port    | `8808`      |
+| `ZACTONZ_MCP_REQUIRE_KEY_HEADER` | `1` refuses a request that brings no key of its own            | off         |
+| `ZACTONZ_MCP_ALLOWED_HOSTS`      | `Host` header values to answer to, separated by commas         | loopback    |
+| `ZACTONZ_MCP_ALLOWED_ORIGINS`    | Browser origins allowed to call, separated by commas           | none        |
+| `ZACTONZ_MCP_MAX_REQUESTS`       | Requests handled at once before load is shed. `0` for no limit | `64`        |
+| `ZACTONZ_MCP_MAX_BODY_BYTES`     | Largest request body accepted                                  | `1048576`   |
+
+Run `npx -y @zactonz/mcp --help` for the same list.
+
 ## Security and privacy
 
 - **Untrusted content.** `read_webpage`, `preview_link` and `read_qr_code` return text written by whoever controls the page or the code. That text can contain instructions aimed at the assistant. The server labels it as third-party data, but the label is advice to the model, not a guarantee. Review what an assistant does after reading pages you do not control.
@@ -185,6 +262,8 @@ Without keys the server still starts and lists every tool, and each call answers
 - **Arguments are validated** against each tool's schema before any request is made, and arguments outside the schema are refused.
 - **Images are fetched for inline display only from the API's own host**, over HTTPS, without following redirects.
 - Tools that fetch a URL do so from Zactonz's servers, which refuse private and internal addresses.
+- **The HTTP transport binds loopback and serves no browser.** A request carrying an `Origin` header is refused, as is one whose `Host` header names a host the server was not given — the two headers a page cannot be made to lie about, and so the two that stop a site the user is visiting from reaching a server bound to their own machine. Both refusals are logged with the value and answered without it. The endpoint sends no CORS headers and answers `OPTIONS` with `405`.
+- **The HTTP transport has no authentication of its own.** A caller is whoever holds a Zactonz key. On loopback that is the machine's own user; anywhere else it is whoever can reach the port, so put TLS and whatever authentication you need in front of it. Keys travel in a header, which is cleartext without TLS.
 
 Report a vulnerability as described in [SECURITY.md](SECURITY.md).
 
@@ -194,6 +273,10 @@ Report a vulnerability as described in [SECURITY.md](SECURITY.md).
 - **Every call answers with setup instructions.** `ZACTONZ_API_KEYS` is empty or holds no valid key. The server prints the reason on stderr, which most clients show in their MCP log.
 - **"Missing or invalid API key."** The key was revoked or mistyped. Ask the assistant to run `check_api_key`, or check the key in the console.
 - **A screenshot has no inline image.** The file is over the inline limit. Lower the quality or size, or raise `ZACTONZ_MCP_INLINE_IMAGE_BYTES`.
+- **`403` when listening over HTTP.** The request carried an `Origin` header, or a `Host` header naming something the server was not given. The reason, with the value, is on stderr. Name the host in `ZACTONZ_MCP_ALLOWED_HOSTS`, or the origin in `ZACTONZ_MCP_ALLOWED_ORIGINS` if a browser really should reach it.
+- **`401` with keys in the header.** None of the values presented is a Zactonz key, which looks like `zk_<product>_<secret>`. A request that brings no key at all is answered with `ZACTONZ_API_KEYS` instead, unless `ZACTONZ_MCP_REQUIRE_KEY_HEADER=1`.
+- **`406` when calling with curl.** The `Accept` header has to list both `application/json` and `text/event-stream`.
+- **`405` on `GET /mcp`.** Expected: the server keeps no session, so there is no stream to open. Send `POST`.
 
 ## Versioning
 

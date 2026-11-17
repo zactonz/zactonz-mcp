@@ -1,18 +1,59 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DEFAULT_BASE_URL, VERSION, createApi } from './api.js';
+import {
+  DEFAULT_HOST,
+  DEFAULT_MAX_BODY_BYTES,
+  DEFAULT_MAX_REQUESTS,
+  DEFAULT_PORT,
+  HEALTH_PATH,
+  KEYS_HEADER,
+  MCP_PATH,
+  createHttpServer,
+  listen,
+  readHttpSettings,
+  readNumber,
+} from './http.js';
 import { CONSOLE_URL, KEYS_VARIABLE, parseKeys } from './keys.js';
 import { DEFAULT_INLINE_IMAGE_BYTES, createServer } from './server.js';
 import tools from './tools.js';
 
 const HELP = `zactonz-mcp ${VERSION}
 
-Model Context Protocol server for the Zactonz APIs. It speaks MCP over stdio,
-so it is started by an MCP client rather than run by hand.
+Model Context Protocol server for the Zactonz APIs. By default it speaks MCP
+over stdio, so an MCP client starts it rather than you. With --http it listens
+instead, and one process can serve a fleet of agents.
+
+Usage:
+  zactonz-mcp                      speak MCP on stdin and stdout
+  zactonz-mcp --http               listen for MCP at http://${DEFAULT_HOST}:${DEFAULT_PORT}${MCP_PATH}
+  zactonz-mcp --http --port 9000    listen on another port
+  zactonz-mcp --help               print this
+  zactonz-mcp --version            print the version
+
+Options:
+  --http                           listen instead of speaking on stdio
+  --host <address>                 address to bind (default ${DEFAULT_HOST})
+  --port <number>                  port to bind (default ${DEFAULT_PORT}, 0 for any free port)
 
 Environment:
   ${KEYS_VARIABLE}                 one or more API keys, separated by commas
   ZACTONZ_MCP_INLINE_IMAGE_BYTES   largest image returned inline (default ${DEFAULT_INLINE_IMAGE_BYTES}, 0 to turn off)
   ZACTONZ_BASE_URL                 API base URL (default ${DEFAULT_BASE_URL})
+
+Environment, listening only:
+  ZACTONZ_MCP_TRANSPORT            stdio or http (same as --http)
+  ZACTONZ_MCP_HOST                 address to bind (same as --host)
+  ZACTONZ_MCP_PORT                 port to bind (same as --port)
+  ZACTONZ_MCP_REQUIRE_KEY_HEADER   1 to refuse a request that brings no key of its own
+  ZACTONZ_MCP_ALLOWED_HOSTS        Host header values to answer to, separated by commas
+  ZACTONZ_MCP_ALLOWED_ORIGINS      browser origins allowed to call, separated by commas
+  ZACTONZ_MCP_MAX_REQUESTS         requests handled at once (default ${DEFAULT_MAX_REQUESTS}, 0 for no limit)
+  ZACTONZ_MCP_MAX_BODY_BYTES       largest request body (default ${DEFAULT_MAX_BODY_BYTES})
+
+When listening, a request may bring its own keys in the ${KEYS_HEADER} header,
+or as a bearer token, and they are used for that request alone. A request that
+brings none is answered with the keys in ${KEYS_VARIABLE}.
+A liveness probe can read ${HEALTH_PATH}, which spends nothing.
 
 Create keys at ${CONSOLE_URL}
 `;
@@ -39,16 +80,10 @@ export function readSettings(env) {
     );
   }
 
-  const raw = env.ZACTONZ_MCP_INLINE_IMAGE_BYTES?.trim() ?? '';
-  const limit = Number(raw);
-  let inlineImageBytes = DEFAULT_INLINE_IMAGE_BYTES;
-  if (raw !== '') {
-    if (Number.isFinite(limit) && limit >= 0) {
-      inlineImageBytes = limit;
-    } else {
-      warnings.push(`ZACTONZ_MCP_INLINE_IMAGE_BYTES="${raw}" is not a number; using ${DEFAULT_INLINE_IMAGE_BYTES}`);
-    }
-  }
+  const inlineImageBytes = readNumber(env, 'ZACTONZ_MCP_INLINE_IMAGE_BYTES', DEFAULT_INLINE_IMAGE_BYTES, warnings, {
+    accept: (value) => value >= 0,
+    expected: 'a number',
+  });
 
   return { keys, inlineImageBytes, baseUrl: env.ZACTONZ_BASE_URL?.trim() || DEFAULT_BASE_URL, warnings };
 }
@@ -67,10 +102,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return;
   }
   const { keys, inlineImageBytes, baseUrl, warnings } = readSettings(env);
+  const http = readHttpSettings(env, argv);
   // stdout carries the protocol, so anything for the operator goes to stderr.
-  for (const warning of warnings) {
+  for (const warning of [...warnings, ...http.warnings]) {
     process.stderr.write(`zactonz-mcp: ${warning}\n`);
   }
-  const server = createServer({ keys, api: createApi({ keys, baseUrl }), inlineImageBytes });
-  await server.connect(new StdioServerTransport());
+  if (!http.enabled) {
+    const server = createServer({ keys, api: createApi({ keys, baseUrl }), inlineImageBytes });
+    await server.connect(new StdioServerTransport());
+    return;
+  }
+  const listener = createHttpServer({ keys, baseUrl, inlineImageBytes, ...http });
+  const bound = await listen(listener, http.port, http.host);
+  const address = bound.host.includes(':') ? `[${bound.host}]` : bound.host;
+  process.stderr.write(`zactonz-mcp: listening for MCP on http://${address}:${bound.port}${MCP_PATH}\n`);
 }
