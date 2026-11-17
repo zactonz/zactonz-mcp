@@ -8,8 +8,12 @@ name: Publish to the MCP Registry
 # red run.
 #
 # So: release publishes to npm, someone releases it there, then this is run.
-# Start it from the tag whose manifest should be published; it reads server.json
-# from whatever ref you pick.
+#
+# It reads server.json from the ref you start it on, so pick the tag whose
+# manifest should go out — except that a dispatch needs this file to exist on
+# that ref, and it will not on a tag cut before this workflow existed. Run it
+# from main in that case: what matters is that server.json on the chosen ref
+# names the version you mean, and the check below proves that version is real.
 
 on:
   workflow_dispatch:
