@@ -1,8 +1,16 @@
 name: Release
 
-# Publishes to npm when a version tag is pushed. Publishing is skipped, rather
-# than failed, until the NPM_TOKEN secret exists: the secrets context cannot be
-# read from an `if`, so it is mapped to an env var the steps can test.
+# Publishes to npm and then to the MCP Registry when a version tag is pushed.
+# Publishing is skipped, rather than failed, until the NPM_TOKEN secret exists:
+# the secrets context cannot be read from an `if`, so it is mapped to an env var
+# the steps can test.
+#
+# The registry step authenticates with GitHub OIDC rather than a token. That is
+# not merely tidier: `mcp-publisher login github` cannot publish to an
+# organisation namespace, and ours is `io.github.zactonz/*`, so OIDC from a
+# workflow is the supported route. `npm run check` already asserts that
+# package.json, server.json and the changelog agree on the version, so the
+# manifest the registry receives cannot drift from the package.
 on:
   push:
     tags: ['v*']
@@ -16,6 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
+      # Pinned deliberately: the verification below checks the archive against this
+      # tag's signing identity, so the two move together. The mutable
+      # `releases/latest` URL would defeat that check.
+      MCP_PUBLISHER_VERSION: v1.8.1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,14 +46,45 @@ jobs:
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # The registry entry names an npm version, so it is published only once that
+      # version is on npm. Publishing it sooner would advertise a package nobody
+      # can install.
+      - name: Install cosign
+        if: env.HAS_NPM_TOKEN == 'true'
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Download and verify mcp-publisher
+        if: env.HAS_NPM_TOKEN == 'true'
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+      - name: Publish to the MCP Registry
+        if: env.HAS_NPM_TOKEN == 'true'
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
       - name: Report a skipped publish
         if: env.HAS_NPM_TOKEN != 'true'
         run: |
           {
             echo "### Publish skipped"
             echo
-            echo "No \`NPM_TOKEN\` secret is set, so \`$GITHUB_REF_NAME\` was built and checked but not published."
+            echo "No \`NPM_TOKEN\` secret is set, so \`$GITHUB_REF_NAME\` was built and checked but"
+            echo "published to neither npm nor the MCP Registry. The registry entry names an npm"
+            echo "version, so it is not published while the package is not."
             echo
             echo "To publish: create the npm org, add a granular access token with write access to"
             echo "\`@zactonz/*\` as the repository secret \`NPM_TOKEN\`, then re-run this workflow."
+            echo "The registry step needs no secret; it uses this workflow's OIDC token."
           } >> "$GITHUB_STEP_SUMMARY"

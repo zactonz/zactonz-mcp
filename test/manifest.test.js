@@ -33,3 +33,19 @@ test('server.json stays within the registry limits', () => {
     ),
   );
 });
+
+test('the release workflow publishes the manifest, not just the package', () => {
+  const workflow = read('.github/workflows/release.yml');
+
+  // The registry listing went stale between 0.1.0 and 0.2.0 precisely because
+  // releasing only touched npm. If these steps are ever dropped, it drifts again.
+  assert.match(workflow, /mcp-publisher publish/, 'a release must reach the MCP Registry');
+  assert.match(workflow, /mcp-publisher login github-oidc/, 'an organisation namespace needs OIDC');
+  assert.match(workflow, /cosign verify-blob/, 'the publisher binary must be verified before it runs');
+  assert.match(workflow, /MCP_PUBLISHER_VERSION: v\d+\.\d+\.\d+/, 'the publisher version must be pinned');
+  assert.doesNotMatch(
+    workflow,
+    /releases\/latest\/download/,
+    'a mutable download URL would defeat the signature check, which pins one tag',
+  );
+});
