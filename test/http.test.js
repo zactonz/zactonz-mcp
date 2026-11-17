@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createApi } from '../src/api.js';
+import { createGovernor } from '../src/governor.js';
 import { HEALTH_PATH, KEYS_HEADER, MCP_PATH, createHttpServer, listen, readHttpSettings } from '../src/http.js';
 import { parseKeys } from '../src/keys.js';
 import { KEYS, fakeFetch, ok } from './helpers.js';
@@ -22,9 +23,9 @@ async function start({ keys = KEYS, queue = [], ...options } = {}) {
   const logs = [];
   const listener = createHttpServer({
     keys: parseKeys(keys),
-    makeApi: ({ keys: keyring }) => {
+    makeApi: ({ keys: keyring, governor }) => {
       keyrings.push(keyring.products);
-      return createApi({ keys: keyring, fetch, sleep: async () => {} });
+      return createApi({ keys: keyring, governor, fetch, sleep: async () => {} });
     },
     log: (line) => logs.push(line),
     ...options,
@@ -111,6 +112,7 @@ test('the health endpoint answers without naming the products that have keys', a
     assert.equal(body.version, '0.2.0');
     assert.equal(body.environmentKeys, 12);
     assert.ok(body.tools > 0);
+    assert.deepEqual(body.api, { active: 0, waiting: 0, pausedFor: 0 });
     assert.doesNotMatch(JSON.stringify(body), /\bqr\b|markdown|zk_/);
     assert.equal(server.calls.length, 0, 'a health check must not spend a unit');
   } finally {
@@ -354,6 +356,34 @@ test('load is shed rather than queued once the limit is reached', async () => {
     const answered = await first;
     assert.equal(answered.status, 200);
     assert.match(answered.text, /api\.zactonz\.com/, 'the held request is still answered');
+  } finally {
+    release(ok({}));
+    await server.close();
+  }
+});
+
+test('one governor holds back the whole process, not each request on its own', async () => {
+  let release = () => {};
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  const server = await start({
+    governor: createGovernor({ maxConcurrency: 1 }),
+    inlineImageBytes: 0,
+    queue: [() => held, ok({ qr: 'https://api.zactonz.com/qr/b.png' })],
+  });
+  try {
+    const first = raw(server.port, { body: callBody('generate_qr_code', { content: 'a' }) });
+    await until(() => server.calls.length === 1);
+
+    const second = raw(server.port, { body: callBody('generate_qr_code', { content: 'b' }, 2) });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(server.calls.length, 1, 'the second request waits for the first call to finish');
+
+    release(ok({ qr: 'https://api.zactonz.com/qr/a.png' }));
+    assert.equal((await first).status, 200);
+    assert.equal((await second).status, 200);
+    assert.equal(server.calls.length, 2);
   } finally {
     release(ok({}));
     await server.close();

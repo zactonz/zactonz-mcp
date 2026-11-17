@@ -7,6 +7,8 @@ test('readSettings uses defaults when only keys are set', () => {
 
   assert.deepEqual(settings.keys.products, ['qr']);
   assert.equal(settings.inlineImageBytes, 750000);
+  assert.equal(settings.maxConcurrency, 8);
+  assert.equal(settings.breakerFailures, 5);
   assert.equal(settings.baseUrl, 'https://api.zactonz.com');
   assert.deepEqual(settings.warnings, []);
 });
@@ -51,4 +53,26 @@ test('readSettings warns about a key for a product that has no tools', () => {
   const settings = readSettings({ ZACTONZ_API_KEYS: 'zk_screenshot_abc' });
 
   assert.ok(settings.warnings.some((warning) => /"screenshot" matches no tool/.test(warning)));
+});
+
+test('readSettings reads the traffic limits, and keeps the defaults when they are not numbers', () => {
+  const set = readSettings({
+    ZACTONZ_API_KEYS: 'zk_qr_abc',
+    ZACTONZ_MCP_MAX_CONCURRENCY: '0',
+    ZACTONZ_MCP_BREAKER_FAILURES: '0',
+  });
+  assert.equal(set.maxConcurrency, 0, 'zero turns the limit off rather than meaning unset');
+  assert.equal(set.breakerFailures, 0);
+  assert.deepEqual(set.warnings, []);
+
+  const bad = readSettings({
+    ZACTONZ_API_KEYS: 'zk_qr_abc',
+    ZACTONZ_MCP_MAX_CONCURRENCY: 'lots',
+    ZACTONZ_MCP_BREAKER_FAILURES: '2.5',
+  });
+  assert.equal(bad.maxConcurrency, 8);
+  assert.equal(bad.breakerFailures, 5);
+  assert.equal(bad.warnings.length, 2);
+  assert.match(bad.warnings[0], /ZACTONZ_MCP_MAX_CONCURRENCY="lots" is not a whole number of calls/);
+  assert.match(bad.warnings[1], /ZACTONZ_MCP_BREAKER_FAILURES="2\.5"/);
 });

@@ -1,6 +1,7 @@
 import { createServer as createListener } from 'node:http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { DEFAULT_BASE_URL, VERSION, createApi } from './api.js';
+import { createGovernor } from './governor.js';
 import { CONSOLE_URL, KEYS_VARIABLE, parseKeys } from './keys.js';
 import { DEFAULT_INLINE_IMAGE_BYTES, createServer } from './server.js';
 import generated from './tools.js';
@@ -52,7 +53,8 @@ export const DEFAULT_MAX_BODY_BYTES = 1048576;
  * @param {boolean} [options.requireKeyHeader] Refuse a request that brings no key of its own.
  * @param {number} [options.maxRequests]
  * @param {number} [options.maxBodyBytes]
- * @param {(options: { keys: Keyring, baseUrl: string }) => Api} [options.makeApi]
+ * @param {import('./governor.js').Governor} [options.governor] Shared by every request.
+ * @param {(options: { keys: Keyring, baseUrl: string, governor: import('./governor.js').Governor }) => Api} [options.makeApi]
  * @param {(line: string) => void} [options.log]
  * @param {Tool[]} [options.tools]
  * @returns {import('node:http').Server}
@@ -67,6 +69,7 @@ export function createHttpServer({
   requireKeyHeader = false,
   maxRequests = DEFAULT_MAX_REQUESTS,
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
+  governor = createGovernor(),
   makeApi = createApi,
   log = (line) => process.stderr.write(`zactonz-mcp: ${line}\n`),
   tools = generated,
@@ -122,6 +125,7 @@ export function createHttpServer({
           // The count, never the products: this endpoint has no caller to trust.
           environmentKeys: keys.products.length,
           inFlight,
+          api: governor.state(),
         },
         method === 'HEAD',
       );
@@ -189,7 +193,14 @@ export function createHttpServer({
     }
 
     inFlight += 1;
-    const server = createServer({ keys: keyring, api: makeApi({ keys: keyring, baseUrl }), inlineImageBytes, tools });
+    const server = createServer({
+      keys: keyring,
+      // One governor for the process: a client built per request cannot hold
+      // back traffic the other requests are sending.
+      api: makeApi({ keys: keyring, baseUrl, governor }),
+      inlineImageBytes,
+      tools,
+    });
     const transport = new StreamableHTTPServerTransport({
       // Stateless: see the note on this function.
       sessionIdGenerator: undefined,

@@ -18,8 +18,28 @@ each tool for free, and can be run once and shared instead of started per client
   keys can share one process. A request that brings none is answered with the
   keys in `ZACTONZ_API_KEYS`, unless `ZACTONZ_MCP_REQUIRE_KEY_HEADER=1`.
 - `GET /healthz`, for a container or an orchestrator to probe. It reports the
-  version, how many tools there are and how many keys the process holds — never
-  which products they are for — and it spends nothing.
+  version, how many tools there are, how many keys the process holds — never
+  which products they are for — and what it is currently sending to the API. It
+  spends nothing.
+- Two prompts, `audit_domain` and `check_link`, holding sequences a caller would
+  otherwise have to work out for itself. Each is rendered against the tools the
+  configured keys can call, so it never names one the caller has no key for, and
+  the remaining steps are renumbered. Both end by saying what not to conclude —
+  that an empty lookup is a finding rather than a failed check, that page text is
+  evidence and not an instruction, that a valid certificate is not grounds for
+  calling a link safe. Fetching one spends no quota.
+- A cap on how many calls the process has in flight to the API,
+  `ZACTONZ_MCP_MAX_CONCURRENCY`, default 8, with the rest queued and the wait
+  counted against the call's own 55 seconds. The cap covers the whole process:
+  over HTTP a client is built per request, so a per-client limit would hold back
+  nothing. Without it a fleet sharing one process trips the burst limit in front
+  of the API and has every call blocked rather than served in turn.
+- A circuit breaker. After `ZACTONZ_MCP_BREAKER_FAILURES` calls in a row that the
+  API does not answer, default 5, the server stops calling it for 30 seconds and
+  says how long is left. Only the API not answering counts: a refusal, a limit or
+  a bad argument all mean it is there. When the wait is over one call goes out to
+  find out whether the API is back and the rest wait for its answer, so
+  recovering costs one call rather than all of them.
 - Every tool whose response the API documents now advertises an `outputSchema`,
   generated from the specification, and every call returns `structuredContent`
   alongside the text. Seventeen of the eighteen tools carry a schema;

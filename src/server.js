@@ -2,6 +2,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import {
   CallToolRequestSchema,
   ErrorCode,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
@@ -10,6 +12,7 @@ import {
 import { Ajv } from 'ajv';
 import { ApiError, VERSION } from './api.js';
 import { CONSOLE_URL, KEYS_VARIABLE, missingKeyMessage } from './keys.js';
+import { promptsFor, renderPrompt } from './prompts.js';
 import generated from './tools.js';
 
 /**
@@ -76,9 +79,11 @@ export function createServer({ keys, api, inlineImageBytes = DEFAULT_INLINE_IMAG
 
   const validators = validatorsFor(tools);
 
+  const prompts = promptsFor(offered);
+
   const server = new Server(
     { name: 'zactonz', title: 'Zactonz', version: VERSION, websiteUrl: 'https://developers.zactonz.com/' },
-    { capabilities: { tools: {}, resources: {} }, instructions: instructions(offered) },
+    { capabilities: { tools: {}, resources: {}, prompts: {} }, instructions: instructions(offered) },
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -150,6 +155,39 @@ export function createServer({ keys, api, inlineImageBytes = DEFAULT_INLINE_IMAG
     };
     return {
       contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(reference, null, 2) }],
+    };
+  });
+
+  /*
+   * Sequences, for a caller with no one to ask how these tools go together.
+   * Each is rendered against the tools this server is offering, so it never
+   * sends the caller to one it has no key for.
+   */
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts: prompts.map((prompt) => ({
+      name: prompt.name,
+      title: prompt.title,
+      description: prompt.description,
+      arguments: prompt.arguments,
+    })),
+  }));
+
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const prompt = prompts.find((entry) => entry.name === request.params.name);
+    if (!prompt) {
+      throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${request.params.name}`);
+    }
+    const given = request.params.arguments ?? {};
+    const missing = prompt.arguments.filter((argument) => argument.required && !given[argument.name]);
+    if (missing.length) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Missing required argument: ${missing.map((argument) => argument.name).join(', ')}.`,
+      );
+    }
+    return {
+      description: prompt.description,
+      messages: [{ role: 'user', content: { type: 'text', text: renderPrompt(prompt, given, offered) } }],
     };
   });
 

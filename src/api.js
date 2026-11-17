@@ -1,3 +1,4 @@
+import { createGovernor } from './governor.js';
 import { missingKeyMessage } from './keys.js';
 
 export const VERSION = '0.2.0';
@@ -26,6 +27,7 @@ const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif
  * @property {number} [maxRetries]
  * @property {(seconds: number, signal?: AbortSignal) => Promise<void>} [sleep]
  * @property {() => number} [now]
+ * @property {import('./governor.js').Governor} [governor] Shared by every client in the process.
  *
  * @typedef {ReturnType<typeof createApi>} Api
  */
@@ -59,6 +61,7 @@ export function createApi({
   maxRetries = 1,
   sleep = pause,
   now = Date.now,
+  governor = createGovernor({ now }),
 }) {
   const origin = new URL(baseUrl).origin;
 
@@ -67,11 +70,11 @@ export function createApi({
    *
    * @param {string} url
    * @param {RequestInit & { method: string }} init
+   * @param {number} deadline When the call runs out of time, in milliseconds.
    * @param {AbortSignal} [signal] Aborts when the client cancels the tool call.
    * @returns {Promise<Response>}
    */
-  async function send(url, init, signal) {
-    const deadline = now() + budget;
+  async function send(url, init, deadline, signal) {
     for (let attempt = 0; ; attempt++) {
       const remaining = deadline - now();
       const timer = AbortSignal.timeout(Math.max(1, remaining));
@@ -131,15 +134,46 @@ export function createApi({
       'User-Agent': `zactonz-mcp/${VERSION}`,
     };
     const query = fields.toString();
-    const response =
+    const target = method === 'GET' ? `${origin}${path}${query ? `?${query}` : ''}` : `${origin}${path}`;
+    /** @type {RequestInit & { method: string }} */
+    const init =
       method === 'GET'
-        ? await send(`${origin}${path}${query ? `?${query}` : ''}`, { method, headers }, signal)
-        : await send(
-            `${origin}${path}`,
-            { method, headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' }, body: query },
-            signal,
-          );
-    return parse(response);
+        ? { method, headers }
+        : { method, headers: { ...headers, 'Content-Type': 'application/x-www-form-urlencoded' }, body: query };
+
+    const paused = governor.hold();
+    if (paused > 0) {
+      throw new ApiError(
+        'The Zactonz API has failed to answer several calls in a row, so this server has stopped calling it. ' +
+          `It will be tried again in ${paused} seconds.`,
+        0,
+        { retryAfter: paused },
+      );
+    }
+    const deadline = now() + budget;
+    const release = await governor.enter(deadline, signal);
+    if (!release) {
+      governor.observe(null);
+      throw new ApiError(
+        signal?.aborted
+          ? 'The call was cancelled.'
+          : 'This server has as many calls to the Zactonz API in flight as it allows, and the wait for a free one used up the time this call had.',
+        0,
+      );
+    }
+    try {
+      const reply = await parse(await send(target, init, deadline, signal));
+      governor.observe(true);
+      return reply;
+    } catch (error) {
+      // Only the API not answering at all says anything about the API. A
+      // refusal, a limit or a bad argument all mean it is there.
+      const status = error instanceof ApiError ? error.status : 0;
+      governor.observe(!(status === 0 || GATEWAY_FAILURES.has(status)));
+      throw error;
+    } finally {
+      release();
+    }
   }
 
   /**

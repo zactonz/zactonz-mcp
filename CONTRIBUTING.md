@@ -17,6 +17,8 @@ npm run check
 - `src/server.js` is the MCP server: tool listing, argument validation, result shaping.
 - `src/http.js` is the streamable HTTP transport: the Host and Origin guard, per-request keys, load shedding, the health endpoint.
 - `src/main.js` reads the settings and picks the transport.
+- `src/governor.js` holds back outbound traffic: the concurrency cap and the circuit breaker. One instance is shared by every API client in the process.
+- `src/prompts.js` holds the prompts, each rendered against the tools on offer.
 - `src/tools.js` and `docs/tools.md` are generated. Do not edit them.
 - `specs/` holds one OpenAPI document per endpoint. They are copied from the API's documentation, so a change to an endpoint's parameters belongs upstream. Open an issue for those.
 - `tools/tools.config.js` decides how endpoints become tools: names, descriptions, hidden and added arguments.

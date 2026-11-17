@@ -1,6 +1,12 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { DEFAULT_BASE_URL, VERSION, createApi } from './api.js';
 import {
+  DEFAULT_BREAKER_FAILURES,
+  DEFAULT_BREAKER_SECONDS,
+  DEFAULT_MAX_CONCURRENCY,
+  createGovernor,
+} from './governor.js';
+import {
   DEFAULT_HOST,
   DEFAULT_MAX_BODY_BYTES,
   DEFAULT_MAX_REQUESTS,
@@ -39,6 +45,8 @@ Environment:
   ${KEYS_VARIABLE}                 one or more API keys, separated by commas
   ZACTONZ_MCP_INLINE_IMAGE_BYTES   largest image returned inline (default ${DEFAULT_INLINE_IMAGE_BYTES}, 0 to turn off)
   ZACTONZ_BASE_URL                 API base URL (default ${DEFAULT_BASE_URL})
+  ZACTONZ_MCP_MAX_CONCURRENCY      API calls in flight at once (default ${DEFAULT_MAX_CONCURRENCY}, 0 for no limit)
+  ZACTONZ_MCP_BREAKER_FAILURES     unanswered calls before the server pauses for ${DEFAULT_BREAKER_SECONDS}s (default ${DEFAULT_BREAKER_FAILURES}, 0 to never pause)
 
 Environment, listening only:
   ZACTONZ_MCP_TRANSPORT            stdio or http (same as --http)
@@ -84,8 +92,23 @@ export function readSettings(env) {
     accept: (value) => value >= 0,
     expected: 'a number',
   });
+  const maxConcurrency = readNumber(env, 'ZACTONZ_MCP_MAX_CONCURRENCY', DEFAULT_MAX_CONCURRENCY, warnings, {
+    accept: (value) => Number.isInteger(value) && value >= 0,
+    expected: 'a whole number of calls, or 0 for no limit',
+  });
+  const breakerFailures = readNumber(env, 'ZACTONZ_MCP_BREAKER_FAILURES', DEFAULT_BREAKER_FAILURES, warnings, {
+    accept: (value) => Number.isInteger(value) && value >= 0,
+    expected: 'a whole number of calls, or 0 to never pause',
+  });
 
-  return { keys, inlineImageBytes, baseUrl: env.ZACTONZ_BASE_URL?.trim() || DEFAULT_BASE_URL, warnings };
+  return {
+    keys,
+    inlineImageBytes,
+    maxConcurrency,
+    breakerFailures,
+    baseUrl: env.ZACTONZ_BASE_URL?.trim() || DEFAULT_BASE_URL,
+    warnings,
+  };
 }
 
 /**
@@ -101,18 +124,19 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     process.stdout.write(HELP);
     return;
   }
-  const { keys, inlineImageBytes, baseUrl, warnings } = readSettings(env);
+  const { keys, inlineImageBytes, maxConcurrency, breakerFailures, baseUrl, warnings } = readSettings(env);
   const http = readHttpSettings(env, argv);
   // stdout carries the protocol, so anything for the operator goes to stderr.
   for (const warning of [...warnings, ...http.warnings]) {
     process.stderr.write(`zactonz-mcp: ${warning}\n`);
   }
+  const governor = createGovernor({ maxConcurrency, failures: breakerFailures });
   if (!http.enabled) {
-    const server = createServer({ keys, api: createApi({ keys, baseUrl }), inlineImageBytes });
+    const server = createServer({ keys, api: createApi({ keys, baseUrl, governor }), inlineImageBytes });
     await server.connect(new StdioServerTransport());
     return;
   }
-  const listener = createHttpServer({ keys, baseUrl, inlineImageBytes, ...http });
+  const listener = createHttpServer({ keys, baseUrl, inlineImageBytes, governor, ...http });
   const bound = await listen(listener, http.port, http.host);
   const address = bound.host.includes(':') ? `[${bound.host}]` : bound.host;
   process.stderr.write(`zactonz-mcp: listening for MCP on http://${address}:${bound.port}${MCP_PATH}\n`);

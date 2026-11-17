@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ApiError } from '../src/api.js';
+import { createGovernor } from '../src/governor.js';
 import { fakeApi, json, ok } from './helpers.js';
 
 const throttled = (retryAfter) =>
@@ -253,4 +254,91 @@ test('downloadImage gives up on oversized, non-image and failed responses', asyn
     null,
   );
   assert.equal(await fakeApi({ queue: [new Error('offline')] }).downloadImage(url, 1000), null);
+});
+
+/** An API client and a governor that share the test's clock. */
+function governed({ queue = [], failures = 2, cooldown = 30, maxConcurrency = 0, ...options } = {}) {
+  const clock = { now: 0 };
+  const governor = createGovernor({ failures, cooldown, maxConcurrency, now: () => clock.now });
+  return { ...fakeApi({ queue, clock, governor, ...options }), governor };
+}
+
+const unreachable = () => new TypeError('fetch failed', { cause: new Error('ECONNREFUSED') });
+
+test('the server stops calling an API that has stopped answering', async () => {
+  const api = governed({ queue: [unreachable(), unreachable()] });
+
+  await assert.rejects(api.call('domain', 'GET', '/domain/dns/', {}), { status: 0 });
+  await assert.rejects(api.call('domain', 'GET', '/domain/dns/', {}), { status: 0 });
+  assert.equal(api.calls.length, 2);
+
+  await assert.rejects(
+    api.call('domain', 'GET', '/domain/dns/', {}),
+    (error) => error.retryAfter === 30 && /stopped calling it/.test(error.message),
+  );
+  assert.equal(api.calls.length, 2, 'the third call is not sent at all');
+});
+
+test('a gateway failure counts against the API, a refusal does not', async () => {
+  const gateway = governed({
+    queue: [new Response('', { status: 502 }), new Response('', { status: 502 })],
+  });
+  // 502 is retried once for a GET, so one call spends both queued replies.
+  await assert.rejects(gateway.call('domain', 'GET', '/domain/dns/', {}), { status: 502 });
+  assert.equal(gateway.governor.state().pausedFor, 0, 'one unanswered call is not enough');
+
+  const refused = governed({ queue: [throttled('3'), throttled('3'), throttled('3'), throttled('3')] });
+  await assert.rejects(refused.call('domain', 'GET', '/domain/dns/', {}), { status: 429 });
+  await assert.rejects(refused.call('domain', 'GET', '/domain/dns/', {}), { status: 429 });
+  assert.equal(refused.governor.state().pausedFor, 0, 'the API answered every time, so nothing is paused');
+});
+
+test('one call goes out after the wait to find out whether the API is back', async () => {
+  const api = governed({ failures: 1, queue: [unreachable(), ok({ back: true })] });
+
+  await assert.rejects(api.call('domain', 'GET', '/domain/dns/', {}), { status: 0 });
+  await assert.rejects(api.call('domain', 'GET', '/domain/dns/', {}), { retryAfter: 30 });
+
+  api.clock.now += 30000;
+  assert.deepEqual((await api.call('domain', 'GET', '/domain/dns/', {})).body.data, { back: true });
+  assert.equal(api.calls.length, 2);
+
+  // The API answered, so the next call does not have to wait its turn either.
+  await assert.rejects(api.call('domain', 'GET', '/domain/dns/', {}), /Unexpected request/);
+});
+
+test('calls past the concurrency limit wait rather than pile on to the API', async () => {
+  let release = () => {};
+  const held = new Promise((resolve) => {
+    release = resolve;
+  });
+  const api = governed({ maxConcurrency: 1, queue: [() => held, ok({ second: true })] });
+
+  const first = api.call('qr', 'POST', '/qr/enc/', { content: 'a' });
+  const second = api.call('qr', 'POST', '/qr/enc/', { content: 'b' });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(api.calls.length, 1, 'the second call has not been sent');
+
+  release(ok({ first: true }));
+  assert.deepEqual((await first).body.data, { first: true });
+  assert.deepEqual((await second).body.data, { second: true });
+  assert.equal(api.calls.length, 2);
+});
+
+test('a call that waits out its whole budget for a slot says so, and is not sent', async () => {
+  const held = new Promise(() => {});
+  // A budget of 50ms rather than the real 55 seconds: the point is what happens
+  // when the wait outlasts the call, not how long a real one is given.
+  const api = governed({ maxConcurrency: 1, budget: 50, queue: [() => held] });
+
+  const first = api.call('qr', 'POST', '/qr/enc/', { content: 'a' });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+
+  await assert.rejects(
+    api.call('qr', 'POST', '/qr/enc/', { content: 'b' }),
+    (error) => error.status === 0 && /as many calls .* in flight as it allows/.test(error.message),
+  );
+  assert.equal(api.calls.length, 1);
+  assert.equal(api.governor.state().pausedFor, 0, 'a call that never left says nothing about the API');
+  void first;
 });

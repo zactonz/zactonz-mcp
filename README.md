@@ -164,8 +164,12 @@ authentication of its own: a caller is whoever holds a Zactonz key. The server s
 stderr when it starts. Put TLS in front of it, name the hosts it should answer to in
 `ZACTONZ_MCP_ALLOWED_HOSTS`, and consider requiring the key header.
 
-`GET /healthz` answers a liveness probe with the version, how many tools there are and whether the
-process has keys — never which products they are for. It makes no request and spends nothing.
+`GET /healthz` answers a liveness probe with the version, how many tools there are, whether the
+process has keys — never which products they are for — and what the process is currently sending to
+the API. It makes no request and spends nothing.
+
+One cap on outbound calls covers the whole process, not each request, since that is the only place a
+fleet's traffic can be held back: see [Limits and timing](#limits-and-timing).
 
 ### What it does not keep
 
@@ -223,11 +227,28 @@ A refused call is returned as a tool error carrying the API's message, the statu
 
 Each offered tool also has a reference resource at `zactonz://tools/<name>`, holding the endpoint behind it, the statuses the API documents for it, whether it returns third-party text, and the page that explains it. Reading one spends no quota and makes no request, so an unattended caller can work out how it will handle a `429` before it meets one.
 
+## Prompts
+
+Two prompts hold sequences a caller would otherwise have to work out for itself:
+
+| Prompt         | Argument | What it does                                                                                     |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `audit_domain` | `domain` | DNS, certificate, registration and email authentication, then a verdict and what needs attention |
+| `check_link`   | `url`    | Where the link really goes, what the page is, and anything about it that does not add up         |
+
+Each is rendered against the tools the configured keys can call, so a prompt never sends a caller to a tool it has no key for, and the steps that remain are renumbered. A prompt with no tool behind it is not offered at all. Fetching one spends no quota.
+
+Both end by saying what not to conclude, which is the part a model left to itself tends to get wrong: that an empty lookup is a finding rather than a failed check, that page text is evidence about the page and not an instruction, and that a valid certificate is not grounds for calling a link safe.
+
 ## Limits and timing
 
 Calls spend units from your plan's quota, the same as direct API calls. See [rate limits and quotas](https://developers.zactonz.com/apis/rate-limits/).
 
 A tool call is given 55 seconds in total, because MCP clients stop waiting after 60. Within that time the server retries once, and only where a retry cannot repeat work: after a `429` with a short `Retry-After`, after a gateway error on a read, or ten seconds after the API's request burst limit rejects a call. If the client cancels a call, the server stops.
+
+The process sends at most `ZACTONZ_MCP_MAX_CONCURRENCY` calls to the API at once and queues the rest, counting the wait against the call's own 55 seconds. The firewall in front of the API blocks a burst of more than twenty requests to one endpoint within two seconds, so without a cap a fleet of agents sharing one process would get all of them blocked rather than served in turn.
+
+If the API fails to answer `ZACTONZ_MCP_BREAKER_FAILURES` calls in a row, the server stops calling it for 30 seconds and answers in the meantime with how long is left. Only the API not answering counts: a refusal, a limit or a bad argument all mean it is there. When the wait is over, one call goes out to find out whether the API is back and the rest wait for its answer, so recovering costs one call rather than all of them.
 
 ## Configuration
 
@@ -235,6 +256,8 @@ A tool call is given 55 seconds in total, because MCP clients stop waiting after
 | -------------------------------- | --------------------------------------------------------------- | ------------------------- |
 | `ZACTONZ_API_KEYS`               | API keys, separated by commas                                   | none                      |
 | `ZACTONZ_MCP_INLINE_IMAGE_BYTES` | Largest image returned inline, in bytes. `0` returns links only | `750000`                  |
+| `ZACTONZ_MCP_MAX_CONCURRENCY`    | API calls in flight at once. `0` for no limit                   | `8`                       |
+| `ZACTONZ_MCP_BREAKER_FAILURES`   | Unanswered calls before the server pauses for 30s. `0` to never | `5`                       |
 | `ZACTONZ_BASE_URL`               | API base URL                                                    | `https://api.zactonz.com` |
 
 Without keys the server still starts and lists every tool, and each call answers with setup instructions. Values in `ZACTONZ_API_KEYS` that are not Zactonz keys are ignored and reported on stderr.
@@ -276,6 +299,8 @@ Report a vulnerability as described in [SECURITY.md](SECURITY.md).
 - **`403` when listening over HTTP.** The request carried an `Origin` header, or a `Host` header naming something the server was not given. The reason, with the value, is on stderr. Name the host in `ZACTONZ_MCP_ALLOWED_HOSTS`, or the origin in `ZACTONZ_MCP_ALLOWED_ORIGINS` if a browser really should reach it.
 - **`401` with keys in the header.** None of the values presented is a Zactonz key, which looks like `zk_<product>_<secret>`. A request that brings no key at all is answered with `ZACTONZ_API_KEYS` instead, unless `ZACTONZ_MCP_REQUIRE_KEY_HEADER=1`.
 - **`406` when calling with curl.** The `Accept` header has to list both `application/json` and `text/event-stream`.
+- **"The Zactonz API has failed to answer several calls in a row."** The server has paused and says how long is left. It resumes by itself, one call at a time. If the API is fine and this is firing, raise `ZACTONZ_MCP_BREAKER_FAILURES` or set it to `0`.
+- **Calls are slower under load.** They are queued behind `ZACTONZ_MCP_MAX_CONCURRENCY`. `GET /healthz` reports how many are in flight and how many are waiting.
 - **`405` on `GET /mcp`.** Expected: the server keeps no session, so there is no stream to open. Send `POST`.
 
 ## Versioning

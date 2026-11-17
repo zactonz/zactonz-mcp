@@ -59,10 +59,9 @@ export function fakeFetch(...queue) {
 }
 
 /** An API client wired to a fake fetch, a recorded sleep and a clock the test controls. */
-export function fakeApi({ keys = KEYS, queue = [], ...options } = {}) {
+export function fakeApi({ keys = KEYS, queue = [], clock = { now: 0 }, ...options } = {}) {
   const { fetch, calls } = fakeFetch(...queue);
   const slept = [];
-  const clock = { now: 0 };
   const api = createApi({
     keys: parseKeys(keys),
     fetch,
