@@ -4,6 +4,7 @@ export default [
     "name": "capture_screenshot",
     "title": "Capture a screenshot of a web page",
     "description": "Loads a public web page in a headless browser and captures it as a JPEG, PNG or WebP image, or as a PDF. Returns a link to the file, and the image itself when it is small enough to look at directly. Suited to checking how a page renders or keeping a visual record of it.",
+    "reference": "https://developers.zactonz.com/apis/screenshot-url/",
     "product": "screen",
     "method": "POST",
     "path": "/screen/url/",
@@ -108,12 +109,42 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Absolute URL of the saved image or PDF, or an error message."
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "The capture was saved. Note that this endpoint returns `status` as a string."
+      },
+      {
+        "code": 400,
+        "title": "Bad request",
+        "description": "`url` was missing, or `quality` was `0` for JPEG output."
+      },
+      {
+        "code": "502",
+        "title": "Not rendered",
+        "description": "The browser could not load or capture the page within the time limit."
+      }
+    ]
   },
   {
     "name": "render_html",
     "title": "Render HTML to an image or PDF",
     "description": "Renders an HTML document you provide as a JPEG, PNG or WebP image, or as a PDF: an invoice, a report, a certificate. Returns a link to the file, and the image itself when it is small enough. Images, fonts and stylesheets referenced by the HTML must use absolute URLs.",
+    "reference": "https://developers.zactonz.com/apis/screenshot-html/",
     "product": "screen",
     "method": "POST",
     "path": "/screen/html/",
@@ -170,12 +201,47 @@ export default [
         "html"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Absolute URL of the saved image or PDF, or an error message."
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "The capture was saved. Note that this endpoint returns `status` as a string."
+      },
+      {
+        "code": 400,
+        "title": "Bad request",
+        "description": "`html` was missing, or `quality` was `0` for JPEG output."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The HTML body exceeds 2 MB."
+      },
+      {
+        "code": "502",
+        "title": "Not rendered",
+        "description": "The browser could not load or capture the page within the time limit."
+      }
+    ]
   },
   {
     "name": "read_webpage",
     "title": "Read a web page as Markdown",
     "description": "Fetches a public web page and returns its main content as Markdown, without navigation, adverts or scripts. For pages that build their content with JavaScript, set render to true.",
+    "reference": "https://developers.zactonz.com/apis/markdown/",
     "product": "markdown",
     "method": "GET",
     "path": "/markdown/",
@@ -238,17 +304,120 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Final URL."
+        },
+        "title": {
+          "type": "string",
+          "description": "Article title."
+        },
+        "byline": {
+          "type": "string",
+          "description": "Author when declared."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short summary."
+        },
+        "site_name": {
+          "type": "string",
+          "description": "Site name."
+        },
+        "language": {
+          "type": "string",
+          "description": "Page language."
+        },
+        "image": {
+          "type": "string",
+          "description": "Lead image URL."
+        },
+        "published_time": {
+          "type": "string",
+          "description": "Publication date as declared."
+        },
+        "mode": {
+          "type": "string",
+          "description": "`article` or `full`; falls back to `full` when no article could be isolated."
+        },
+        "word_count": {
+          "type": "integer",
+          "description": "Words in the Markdown."
+        },
+        "length": {
+          "type": "integer",
+          "description": "Characters in the Markdown."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "Whether `max_chars` cut the output."
+        },
+        "markdown": {
+          "type": "string",
+          "description": "The Markdown."
+        },
+        "rendered": {
+          "type": "boolean",
+          "description": "Whether a browser was used."
+        },
+        "from_cache": {
+          "type": "boolean",
+          "description": "Whether the answer came from the cache."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "Neither `url` nor `html` was provided, or the URL is not reachable from here."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The page or the posted HTML exceeds the size limit."
+      },
+      {
+        "code": "415",
+        "title": "Not HTML",
+        "description": "The URL does not serve HTML or plain text."
+      },
+      {
+        "code": "422",
+        "title": "Unreachable",
+        "description": "The page could not be fetched."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "convert_html_to_markdown",
     "title": "Convert HTML to Markdown",
     "description": "Converts HTML you already hold to Markdown. Nothing is fetched.",
+    "reference": "https://developers.zactonz.com/apis/markdown/",
     "product": "markdown",
     "method": "POST",
     "path": "/markdown/",
     "readOnly": true,
-    "untrusted": false,
+    "untrusted": true,
     "fixed": {
       "format": "json"
     },
@@ -296,12 +465,115 @@ export default [
         "html"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Final URL."
+        },
+        "title": {
+          "type": "string",
+          "description": "Article title."
+        },
+        "byline": {
+          "type": "string",
+          "description": "Author when declared."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short summary."
+        },
+        "site_name": {
+          "type": "string",
+          "description": "Site name."
+        },
+        "language": {
+          "type": "string",
+          "description": "Page language."
+        },
+        "image": {
+          "type": "string",
+          "description": "Lead image URL."
+        },
+        "published_time": {
+          "type": "string",
+          "description": "Publication date as declared."
+        },
+        "mode": {
+          "type": "string",
+          "description": "`article` or `full`; falls back to `full` when no article could be isolated."
+        },
+        "word_count": {
+          "type": "integer",
+          "description": "Words in the Markdown."
+        },
+        "length": {
+          "type": "integer",
+          "description": "Characters in the Markdown."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "Whether `max_chars` cut the output."
+        },
+        "markdown": {
+          "type": "string",
+          "description": "The Markdown."
+        },
+        "rendered": {
+          "type": "boolean",
+          "description": "Whether a browser was used."
+        },
+        "from_cache": {
+          "type": "boolean",
+          "description": "Whether the answer came from the cache."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "Neither `url` nor `html` was provided, or the URL is not reachable from here."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The page or the posted HTML exceeds the size limit."
+      },
+      {
+        "code": "415",
+        "title": "Not HTML",
+        "description": "The URL does not serve HTML or plain text."
+      },
+      {
+        "code": "422",
+        "title": "Unreachable",
+        "description": "The page could not be fetched."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "preview_link",
     "title": "Preview a link",
     "description": "Reads the metadata of a public URL: title, description, preview image, favicon, site name, author, publication date, language and feeds. A quick way to learn what a link points to without reading the page.",
+    "reference": "https://developers.zactonz.com/apis/link-preview/",
     "product": "unfurl",
     "method": "GET",
     "path": "/unfurl/",
@@ -339,12 +611,156 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "URL as requested."
+        },
+        "final_url": {
+          "type": "string",
+          "description": "URL after redirects."
+        },
+        "status": {
+          "type": "integer",
+          "description": "HTTP status of the page."
+        },
+        "title": {
+          "type": "string",
+          "description": "Best title from Open Graph, Twitter or the title tag."
+        },
+        "description": {
+          "type": "string",
+          "description": "Best description."
+        },
+        "site_name": {
+          "type": "string",
+          "description": "Site name."
+        },
+        "type": {
+          "type": "string",
+          "description": "Open Graph type."
+        },
+        "canonical": {
+          "type": "string",
+          "description": "Canonical URL."
+        },
+        "image": {
+          "type": "object",
+          "description": "Preview image: `url`, `width`, `height`, `alt`, `type`, and with `verify_image` also `verified` and `bytes`."
+        },
+        "favicon": {
+          "type": "string",
+          "description": "Best icon URL."
+        },
+        "icons": {
+          "type": "array",
+          "description": "All declared icons with `rel`, `sizes` and `type`.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "language": {
+          "type": "string",
+          "description": "Value of `<html lang>`."
+        },
+        "locale": {
+          "type": "string",
+          "description": "Open Graph locale."
+        },
+        "author": {
+          "type": "string",
+          "description": "Author."
+        },
+        "published_time": {
+          "type": "string",
+          "description": "Publication date as declared."
+        },
+        "modified_time": {
+          "type": "string",
+          "description": "Modification date as declared."
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Meta keywords.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "theme_color": {
+          "type": "string",
+          "description": "Theme colour."
+        },
+        "twitter": {
+          "type": "object",
+          "description": "`card`, `site`, `creator`."
+        },
+        "feeds": {
+          "type": "array",
+          "description": "RSS, Atom or JSON feeds with `url`, `type`, `title`.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "oembed": {
+          "type": "string",
+          "description": "oEmbed endpoint if declared."
+        },
+        "rendered": {
+          "type": "boolean",
+          "description": "Whether a browser was used."
+        },
+        "from_cache": {
+          "type": "boolean",
+          "description": "Whether the answer came from the cache."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`url` is missing, malformed, or points at a host that is not reachable from here."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The page is larger than 2 MB."
+      },
+      {
+        "code": "415",
+        "title": "Not HTML",
+        "description": "The URL does not serve an HTML document."
+      },
+      {
+        "code": "422",
+        "title": "Unreachable",
+        "description": "The page could not be fetched, or it answered with an error status given in `upstream_status`."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "lookup_dns",
     "title": "Look up DNS records",
     "description": "Returns the DNS records of a host or domain (A, AAAA, MX, TXT, NS, CNAME, SOA, CAA, SRV) and its DNSSEC status.",
+    "reference": "https://developers.zactonz.com/apis/domain-dns/",
     "product": "domain",
     "method": "GET",
     "path": "/domain/dns/",
@@ -375,12 +791,56 @@ export default [
         "name"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name queried."
+        },
+        "records": {
+          "type": "object",
+          "description": "One list per type. A and AAAA carry `address`; MX `priority` and `exchange`; TXT `text`; CNAME, NS and PTR `target`; SOA the zone fields; CAA `flags`, `tag`, `value`; SRV `priority`, `weight`, `port`, `target`. Every record has `name` and `ttl`."
+        },
+        "dnssec": {
+          "type": "object",
+          "description": "`ds_records` and `validated_by_resolver`."
+        },
+        "queried_at": {
+          "type": "string",
+          "description": "Timestamp."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`name` is missing or a record type is not supported."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "inspect_ssl_certificate",
     "title": "Inspect an SSL certificate",
     "description": "Connects to a host and reports its TLS certificate: issuer, subject, validity dates, days remaining, whether the chain is trusted and the name matches, and the protocol and cipher in use.",
+    "reference": "https://developers.zactonz.com/apis/domain-ssl/",
     "product": "domain",
     "method": "GET",
     "path": "/domain/ssl/",
@@ -422,12 +882,112 @@ export default [
         "host"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "Host inspected."
+        },
+        "ip": {
+          "type": "string",
+          "description": "Address connected to."
+        },
+        "port": {
+          "type": "integer",
+          "description": "Port."
+        },
+        "connect_ms": {
+          "type": "integer",
+          "description": "Handshake time in milliseconds."
+        },
+        "protocol": {
+          "type": "string",
+          "description": "Negotiated protocol, for example `TLSv1.3`."
+        },
+        "cipher": {
+          "type": "string",
+          "description": "Negotiated cipher."
+        },
+        "valid": {
+          "type": "boolean",
+          "description": "True when the chain is trusted, the name matches and the certificate is within its dates."
+        },
+        "hostname_match": {
+          "type": "boolean",
+          "description": "Whether the certificate covers `host`."
+        },
+        "trusted_chain": {
+          "type": "boolean",
+          "description": "Whether the chain verifies against the CA store."
+        },
+        "chain_error": {
+          "type": "string",
+          "description": "Verification error when the chain fails."
+        },
+        "expired": {
+          "type": "boolean",
+          "description": "Whether the certificate has expired."
+        },
+        "not_yet_valid": {
+          "type": "boolean",
+          "description": "Whether the certificate is not yet valid."
+        },
+        "self_signed": {
+          "type": "boolean",
+          "description": "Whether issuer equals subject."
+        },
+        "days_remaining": {
+          "type": "integer",
+          "description": "Days until expiry, negative when expired."
+        },
+        "certificate": {
+          "type": "object",
+          "description": "Leaf certificate: `subject`, `issuer`, `san`, `serial`, `signature_algorithm`, `key_type`, `key_bits`, `not_before_iso`, `not_after_iso`, `fingerprint_sha256`."
+        },
+        "chain": {
+          "type": "array",
+          "description": "Every certificate the server sent, in the same shape.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`host` is missing, not a host name, on a disallowed port, or not reachable from here."
+      },
+      {
+        "code": "422",
+        "title": "No TLS",
+        "description": "The host did not complete a TLS handshake or presented no certificate."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "lookup_whois",
     "title": "Look up a domain registration",
     "description": "Returns the registration record of a domain from RDAP or WHOIS: registrar, creation, update and expiry dates, status codes, nameservers and abuse contact.",
+    "reference": "https://developers.zactonz.com/apis/domain-whois/",
     "product": "domain",
     "method": "GET",
     "path": "/domain/whois/",
@@ -455,12 +1015,109 @@ export default [
         "domain"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Registrable domain."
+        },
+        "source": {
+          "type": "string",
+          "description": "`rdap` or `whois`."
+        },
+        "registry": {
+          "type": "string",
+          "description": "RDAP base URL or WHOIS server used."
+        },
+        "registrar": {
+          "type": "string",
+          "description": "Registrar name."
+        },
+        "abuse_contact": {
+          "type": "string",
+          "description": "Registrar abuse email when published."
+        },
+        "status": {
+          "type": "array",
+          "description": "EPP status codes.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "created": {
+          "type": "string",
+          "description": "Registration date."
+        },
+        "updated": {
+          "type": "string",
+          "description": "Last change."
+        },
+        "expires": {
+          "type": "string",
+          "description": "Expiry date."
+        },
+        "nameservers": {
+          "type": "array",
+          "description": "Delegated nameservers.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dnssec": {
+          "type": "boolean",
+          "description": "Whether the delegation is signed."
+        },
+        "raw": {
+          "type": "string",
+          "description": "Raw WHOIS text, only with `raw=1` on the fallback path."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`domain` is missing or not a domain name."
+      },
+      {
+        "code": "404",
+        "title": "Not found",
+        "description": "The registry has no record for this domain."
+      },
+      {
+        "code": "422",
+        "title": "No service",
+        "description": "No RDAP or WHOIS service is known for that top-level domain, or it did not answer."
+      },
+      {
+        "code": "503",
+        "title": "Registry busy",
+        "description": "The registry is rate limiting; retry shortly."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "check_email_domain",
     "title": "Check the email setup of a domain",
     "description": "Audits how a domain is configured for email: MX, SPF, DKIM, DMARC, MTA-STS, TLS-RPT and BIMI records, whether it is a disposable or free mail provider, a score out of 100 and a list of findings.",
+    "reference": "https://developers.zactonz.com/apis/email-domain/",
     "product": "email",
     "method": "GET",
     "path": "/email/domain/",
@@ -496,12 +1153,112 @@ export default [
         "domain"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "domain": {
+          "type": "string",
+          "description": "Domain audited."
+        },
+        "score": {
+          "type": "integer",
+          "description": "0 to 100."
+        },
+        "grade": {
+          "type": "string",
+          "description": "A to F."
+        },
+        "disposable": {
+          "type": "boolean",
+          "description": "Known disposable-address provider."
+        },
+        "free_provider": {
+          "type": "boolean",
+          "description": "Consumer webmail provider."
+        },
+        "mx": {
+          "type": "array",
+          "description": "MX hosts with `priority`, `exchange`, `addresses` and, with `probe=1`, `smtp` (`reachable`, `banner`, `starttls`).",
+          "items": {
+            "type": "object"
+          }
+        },
+        "spf": {
+          "type": "object",
+          "description": "`present`, `record`, `valid`, `all` qualifier, DNS `lookups`, `mechanisms`."
+        },
+        "dkim": {
+          "type": "array",
+          "description": "Keys found: `selector`, `key_type`, `key_bits`, `revoked`, `testing`.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "dmarc": {
+          "type": "object",
+          "description": "`present`, `record`, `policy`, `subdomain_policy`, `pct`, `rua`, `ruf`, `adkim`, `aspf`."
+        },
+        "mta_sts": {
+          "type": "object",
+          "description": "`present`, `record`, fetched `policy`."
+        },
+        "tls_rpt": {
+          "type": "object",
+          "description": "`present`, `record`."
+        },
+        "bimi": {
+          "type": "object",
+          "description": "`present`, `record`."
+        },
+        "findings": {
+          "type": "array",
+          "description": "Each with `code`, `severity` (`critical`, `warning`, `info`) and `message`.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "checked_selectors": {
+          "type": "array",
+          "description": "Selectors that were queried.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "checked_at": {
+          "type": "string",
+          "description": "Timestamp."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`domain` is missing or not a domain name."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "verify_emails",
     "title": "Verify email addresses",
     "description": "Checks whether email addresses can receive mail by asking the receiving mail server, without sending a message. Returns valid or invalid for each address. Can take up to a minute.",
+    "reference": "https://developers.zactonz.com/apis/mail-verifier/",
     "product": "mverifier",
     "method": "POST",
     "path": "/mverifier/",
@@ -528,12 +1285,35 @@ export default [
         "emails"
       ],
       "additionalProperties": false
-    }
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "Processed. If `mails` is absent, `message` explains why (no addresses sent, or more than ten)."
+      },
+      {
+        "code": 400,
+        "title": "Missing API key",
+        "description": "`key` was absent."
+      },
+      {
+        "code": 403,
+        "title": "Invalid key",
+        "description": "`key` is not recognised."
+      },
+      {
+        "code": 406,
+        "title": "Key expired",
+        "description": "The key's validity period has ended. Contact support to renew it."
+      }
+    ]
   },
   {
     "name": "generate_qr_code",
     "title": "Generate a QR code",
     "description": "Encodes text or a URL as a QR code. Returns a link to the image and the image itself. With the text format it returns the code as rows of 0 and 1 instead.",
+    "reference": "https://developers.zactonz.com/apis/qr-encoder/",
     "product": "qr",
     "method": "GET",
     "path": "/qr/enc/",
@@ -602,12 +1382,55 @@ export default [
         "content"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "qr": {
+          "type": "string",
+          "description": "Absolute URL of the generated image (`png` and `jpg` formats)."
+        },
+        "text": {
+          "type": "string",
+          "description": "Inline SVG markup or the text matrix (`svg` and `text` formats only)."
+        },
+        "size": {
+          "type": "integer",
+          "description": "Module size that was applied."
+        },
+        "accuracy": {
+          "type": "string",
+          "description": "Error-correction level as a single letter: `L`, `M`, `Q` or `H`."
+        },
+        "format": {
+          "type": "string",
+          "description": "Output format that was applied."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "The code was generated."
+      },
+      {
+        "code": 400,
+        "title": "Missing content",
+        "description": "`content` was empty or absent. `data` carries the message."
+      },
+      {
+        "code": 500,
+        "title": "Encoding failed",
+        "description": "The encoder could not build the matrix. Shorten the content or lower `accuracy`."
+      }
+    ]
   },
   {
     "name": "read_qr_code",
     "title": "Read a QR code",
     "description": "Decodes the QR code in an image and returns the text it holds.",
+    "reference": "https://developers.zactonz.com/apis/qr-decoder/",
     "product": "qr",
     "method": "POST",
     "path": "/qr/dec/",
@@ -639,12 +1462,47 @@ export default [
         "image"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The text encoded in the QR code, or an error message for non-200 statuses."
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "A code was found and decoded."
+      },
+      {
+        "code": 400,
+        "title": "Missing image",
+        "description": "`image` was empty or absent."
+      },
+      {
+        "code": 401,
+        "title": "Image not usable",
+        "description": "The URL was invalid, not `http(s)`, pointed at a private host, exceeded 8 MB, or the base64 payload could not be decoded. `data` says which."
+      },
+      {
+        "code": 422,
+        "title": "No QR code found",
+        "description": "The image loaded but no QR code could be read from it."
+      }
+    ]
   },
   {
     "name": "generate_barcode",
     "title": "Generate a barcode",
     "description": "Renders a barcode: Code 128, Code 39, Code 93, EAN-13, EAN-8, UPC-A, UPC-E, ITF-14 or Codabar. Returns a link valid for 24 hours, the dimensions and the image itself.",
+    "reference": "https://developers.zactonz.com/apis/barcode-encoder/",
     "product": "barcode",
     "method": "GET",
     "path": "/barcode/",
@@ -719,12 +1577,68 @@ export default [
         "content"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "barcode": {
+          "type": "string",
+          "description": "Temporary link to the rendered image."
+        },
+        "type": {
+          "type": "string",
+          "description": "Symbology used."
+        },
+        "content": {
+          "type": "string",
+          "description": "Value encoded."
+        },
+        "format": {
+          "type": "string",
+          "description": "Image format."
+        },
+        "width": {
+          "type": "integer",
+          "description": "Pixel width, null for SVG."
+        },
+        "height": {
+          "type": "integer",
+          "description": "Pixel height, null for SVG."
+        },
+        "expires_in": {
+          "type": "integer",
+          "description": "Seconds the link stays valid."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`content` is missing, or it does not fit the chosen symbology. The message says which rule failed."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "generate_social_image",
     "title": "Generate a social card image",
     "description": "Creates an Open Graph image, the card shown when a link is shared, from a title and an optional subtitle, site label and logo. Returns a link valid for seven days and the image itself.",
+    "reference": "https://developers.zactonz.com/apis/og-image/",
     "product": "og",
     "method": "GET",
     "path": "/og/",
@@ -820,12 +1734,71 @@ export default [
         "title"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Hosted link to the card."
+        },
+        "format": {
+          "type": "string",
+          "description": "Image format."
+        },
+        "size": {
+          "type": "string",
+          "description": "Pixel size."
+        },
+        "cached": {
+          "type": "boolean",
+          "description": "Whether the card came from the cache."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "`title` is missing or a parameter is out of range."
+      },
+      {
+        "code": "422",
+        "title": "Logo unavailable",
+        "description": "The logo URL did not return an image."
+      },
+      {
+        "code": "503",
+        "title": "Renderer busy",
+        "description": "All render slots are in use. Retry after a few seconds."
+      },
+      {
+        "code": "504",
+        "title": "Timeout",
+        "description": "Rendering did not finish within the time limit."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "convert_image",
     "title": "Convert or resize an image",
     "description": "Converts an image at a public URL to WebP, AVIF, JPEG, PNG or GIF, optionally resizing, cropping, rotating, flipping, blurring, sharpening or removing colour. Returns a link valid for 24 hours with the source and output details, and the image itself when it is small enough.",
+    "reference": "https://developers.zactonz.com/apis/image-convert/",
     "product": "image",
     "method": "POST",
     "path": "/image/",
@@ -918,12 +1891,66 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "object",
+          "description": "Dimensions, format, byte size, EXIF orientation, animation and alpha of the input."
+        },
+        "output": {
+          "type": "object",
+          "description": "Dimensions, format, byte size and quality of the result. Absent with `info=1`."
+        },
+        "colors": {
+          "type": "object",
+          "description": "With `info=1`: `dominant` list of `{hex, share}` and the `average` colour."
+        },
+        "image": {
+          "type": "string",
+          "description": "With `resp=json`: hosted link valid for 24 hours."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "No `file` upload and no `url` were sent, or a parameter is invalid."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The upload exceeds your plan's limit or the image exceeds 25 megapixels."
+      },
+      {
+        "code": "415",
+        "title": "Unsupported",
+        "description": "The bytes are not a JPEG, PNG, GIF, WebP, AVIF or BMP image."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "inspect_image",
     "title": "Inspect an image",
     "description": "Reports the width, height, format, file size, orientation, transparency and dominant colours of an image at a public URL.",
+    "reference": "https://developers.zactonz.com/apis/image-convert/",
     "product": "image",
     "method": "POST",
     "path": "/image/",
@@ -948,12 +1975,66 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "object",
+          "description": "Dimensions, format, byte size, EXIF orientation, animation and alpha of the input."
+        },
+        "output": {
+          "type": "object",
+          "description": "Dimensions, format, byte size and quality of the result. Absent with `info=1`."
+        },
+        "colors": {
+          "type": "object",
+          "description": "With `info=1`: `dominant` list of `{hex, share}` and the `average` colour."
+        },
+        "image": {
+          "type": "string",
+          "description": "With `resp=json`: hosted link valid for 24 hours."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": "400",
+        "title": "Bad request",
+        "description": "No `file` upload and no `url` were sent, or a parameter is invalid."
+      },
+      {
+        "code": "413",
+        "title": "Too large",
+        "description": "The upload exceeds your plan's limit or the image exceeds 25 megapixels."
+      },
+      {
+        "code": "415",
+        "title": "Unsupported",
+        "description": "The bytes are not a JPEG, PNG, GIF, WebP, AVIF or BMP image."
+      },
+      {
+        "code": "401",
+        "title": "Unauthorized",
+        "description": "The Authorization header is missing or the key is not recognised."
+      },
+      {
+        "code": "403",
+        "title": "Forbidden",
+        "description": "The key is not licensed for this product."
+      },
+      {
+        "code": "429",
+        "title": "Too many requests",
+        "description": "The per-minute rate or the plan quota is exhausted. Retry after the seconds given in `Retry-After`."
+      }
+    ]
   },
   {
     "name": "translate_text",
     "title": "Translate text",
     "description": "Translates text from one language to another. 46 languages are supported.",
+    "reference": "https://developers.zactonz.com/apis/translator/",
     "product": "translator",
     "method": "POST",
     "path": "/translator/",
@@ -986,12 +2067,42 @@ export default [
         "to"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Source language code that was used."
+        },
+        "to": {
+          "type": "string",
+          "description": "Target language code."
+        },
+        "text": {
+          "type": "string",
+          "description": "The translated text."
+        }
+      }
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "Translated."
+      },
+      {
+        "code": 400,
+        "title": "Rejected",
+        "description": "Invalid key, a missing `text` or `to`, an unsupported language code, or the translation engine being unavailable. `errors` lists the reason."
+      }
+    ]
   },
   {
     "name": "get_drive_download_link",
     "title": "Get a Google Drive download link",
     "description": "Converts a Google Drive share link into a URL that downloads the file directly.",
+    "reference": "https://developers.zactonz.com/apis/gdrive-direct-link/",
     "product": "gdrive",
     "method": "GET",
     "path": "/gdrive/directlink/",
@@ -1014,6 +2125,35 @@ export default [
         "url"
       ],
       "additionalProperties": false
-    }
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "direct_link": {
+          "type": "string",
+          "description": "The direct download URL, or an explanation for non-200 statuses."
+        }
+      },
+      "required": [
+        "direct_link"
+      ]
+    },
+    "statusCodes": [
+      {
+        "code": 200,
+        "title": "OK",
+        "description": "Resolved."
+      },
+      {
+        "code": 400,
+        "title": "Missing url",
+        "description": "`url` was empty or absent."
+      },
+      {
+        "code": 403,
+        "title": "Could not resolve",
+        "description": "The file is private, was removed, or Google is throttling it. `data` carries the reason."
+      }
+    ]
   }
 ];

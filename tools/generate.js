@@ -62,6 +62,48 @@ function specParameters(spec) {
 }
 
 /**
+ * The `data` member of an operation's success response. That is what a caller
+ * receives once the `{ status, data }` envelope is unwrapped, so it is the only
+ * part worth describing. Returns null where the specification is silent, so no
+ * output schema is promised that the server might not be able to honour.
+ */
+function specResponse(spec) {
+  const path = Object.keys(spec.paths)[0];
+  const http = Object.keys(spec.paths[path])[0];
+  const operation = spec.paths[path][http];
+  for (const [code, response] of Object.entries(operation.responses ?? {})) {
+    if (!code.startsWith('2')) {
+      continue;
+    }
+    const data = response.content?.['application/json']?.schema?.properties?.data;
+    if (data && typeof data === 'object') {
+      return data;
+    }
+  }
+  return null;
+}
+
+/**
+ * Schema for the object the server returns as structured content. A record is
+ * handed back as it stands, so its own properties describe it; a scalar is
+ * described under the name the server wraps it with.
+ *
+ * Documented fields are deliberately not marked required. The schema is here to
+ * tell a caller what to expect, and an API that one day omits a field it
+ * documents should not turn an otherwise good answer into a protocol error.
+ */
+function responseSchema(data, tool) {
+  if (!data) {
+    return null;
+  }
+  if (data.type === 'object' && data.properties) {
+    return { type: 'object', properties: data.properties };
+  }
+  const wrapped = tool.wrap ?? 'result';
+  return { type: 'object', properties: { [wrapped]: data }, required: [wrapped] };
+}
+
+/**
  * The specifications describe parameters as they travel over HTTP, where a
  * flag is `1` or `0`. A model is offered real booleans, so those are reworded.
  */
@@ -118,6 +160,7 @@ function buildTools(specs) {
         (p) => !hidden.has(p.name) && (!tool.only || tool.only.includes(p.name)),
       );
       const required = offered.filter((p) => p.required || (tool.require ?? []).includes(p.name)).map((p) => p.name);
+      const output = responseSchema(specResponse(spec), tool);
       const ordered = [...offered].sort(
         (a, b) => Number(required.includes(b.name)) - Number(required.includes(a.name)),
       );
@@ -142,6 +185,12 @@ function buildTools(specs) {
           required,
           additionalProperties: false,
         },
+        ...(output ? { outputSchema: output } : {}),
+        statusCodes: (spec['x-status-codes'] ?? []).map(({ code, title, description }) => ({
+          code,
+          title,
+          description: describe(description),
+        })),
       });
     }
   }
@@ -149,8 +198,7 @@ function buildTools(specs) {
 }
 
 function renderModule(tools) {
-  const shipped = tools.map(({ reference, ...tool }) => tool);
-  return `// ${NOTICE}\nexport default ${JSON.stringify(shipped, null, 2)};\n`;
+  return `// ${NOTICE}\nexport default ${JSON.stringify(tools, null, 2)};\n`;
 }
 
 function renderReference(tools) {

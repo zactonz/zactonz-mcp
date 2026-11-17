@@ -87,6 +87,13 @@ export default {
       title: 'Convert HTML to Markdown',
       description: 'Converts HTML you already hold to Markdown. Nothing is fetched.',
       readOnly: true,
+      /*
+       * Nothing is fetched here, so the HTML arrives from the caller — but the
+       * caller is often an agent passing on a page it fetched itself, and the
+       * server cannot tell that apart from markup the operator wrote. The fields
+       * returned are the ones read_webpage returns, so the same warning applies.
+       */
+      untrusted: true,
       http: 'POST',
       force: { format: 'json' },
       hide: ['url', 'render', 'fresh'],

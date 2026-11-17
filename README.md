@@ -148,12 +148,18 @@ Example requests once it is connected:
 
 ## Results
 
-A tool returns JSON text. Two things differ from the raw API:
+A tool returns the answer twice over: as text for an assistant to read, and as structured content for a caller that would rather not parse anything. Both describe the same payload, and every tool whose response the API documents also advertises an `outputSchema`, so a caller knows the shape before it calls. One endpoint, `verify_emails`, does not document its response, so no schema is promised for it.
+
+Two things differ from the raw API:
 
 - `read_webpage` and `convert_html_to_markdown` return the Markdown as plain text, followed by the remaining fields as JSON. They request at most 20,000 characters unless the assistant asks for more.
 - A tool that produces an image returns the link and, when the file is 750 KB or smaller, the image as well, so the assistant can look at it. `capture_screenshot` and `render_html` use JPEG quality 80 unless told otherwise, to stay under that size. PDFs and larger images are returned as a link only.
 
 A refused call is returned as a tool error carrying the API's message, the status, how long to wait when a limit was reached, and the request id.
+
+## References
+
+Each offered tool also has a reference resource at `zactonz://tools/<name>`, holding the endpoint behind it, the statuses the API documents for it, whether it returns third-party text, and the page that explains it. Reading one spends no quota and makes no request, so an unattended caller can work out how it will handle a `429` before it meets one.
 
 ## Limits and timing
 

@@ -3,7 +3,7 @@
   "name": "io.github.zactonz/zactonz-mcp",
   "title": "Zactonz",
   "description": "Screenshots, page to Markdown, link previews, DNS, SSL, WHOIS, QR codes and more for AI agents.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "websiteUrl": "https://developers.zactonz.com/tools/zactonz-mcp/",
   "repository": {
     "url": "https://github.com/zactonz/zactonz-mcp",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "@zactonz/mcp",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },

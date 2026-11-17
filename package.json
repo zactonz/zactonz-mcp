@@ -1,6 +1,6 @@
 {
   "name": "@zactonz/mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model Context Protocol server for the Zactonz APIs: screenshots, web page to Markdown, link previews, DNS, SSL, WHOIS, email checks, QR codes, barcodes, social card images, image conversion and translation as tools for AI assistants.",
   "keywords": [
     "mcp",

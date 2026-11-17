@@ -59,16 +59,55 @@ test('instructions mention only tools that are offered', async () => {
   await all.close();
 });
 
-test('returns a lookup as JSON text without structured content', async () => {
+test('returns a lookup as JSON text and as structured content', async () => {
   const data = { name: 'zactonz.com', records: { A: [{ address: '67.43.236.62' }] } };
   const { client, calls, close } = await connect({ queue: [ok(data)] });
 
   const result = await client.callTool({ name: 'lookup_dns', arguments: { name: 'zactonz.com', type: ['A', 'MX'] } });
 
   assert.equal(result.isError, undefined);
-  assert.equal(result.structuredContent, undefined);
   assert.deepEqual(JSON.parse(text(result)), data);
+  assert.deepEqual(result.structuredContent, data, 'a caller should not have to parse the text');
   assert.equal(calls[0].url, 'https://api.zactonz.com/domain/dns/?name=zactonz.com&type=A%2CMX');
+  await close();
+});
+
+test('wraps a scalar answer under the name the output schema promises', async () => {
+  const { client, close } = await connect({ queue: [ok('https://zactonz.com/')] });
+
+  const result = await client.callTool({ name: 'read_qr_code', arguments: { image: 'https://example.com/qr.png' } });
+  const listed = (await client.listTools()).tools.find((tool) => tool.name === 'read_qr_code');
+
+  assert.deepEqual(result.structuredContent, { content: 'https://zactonz.com/' });
+  assert.deepEqual(Object.keys(listed.outputSchema.properties), ['content']);
+  assert.deepEqual(listed.outputSchema.required, ['content']);
+  await close();
+});
+
+test('advertises an output schema whose properties match what a call returns', async () => {
+  const data = { name: 'zactonz.com', records: { A: [{ address: '67.43.236.62' }] } };
+  const { client, close } = await connect({ queue: [ok(data)] });
+
+  const listed = (await client.listTools()).tools.find((tool) => tool.name === 'lookup_dns');
+  const result = await client.callTool({ name: 'lookup_dns', arguments: { name: 'zactonz.com', type: ['A'] } });
+
+  assert.equal(listed.outputSchema.type, 'object');
+  for (const key of Object.keys(result.structuredContent)) {
+    assert.ok(key in listed.outputSchema.properties, `the schema should describe ${key}`);
+  }
+  await close();
+});
+
+test('promises no output schema for an endpoint whose response is undocumented', async () => {
+  const { client, close } = await connect({ keys: '' });
+
+  const listed = (await client.listTools()).tools;
+  const undocumented = tools.filter((tool) => !tool.outputSchema).map((tool) => tool.name);
+
+  assert.deepEqual(undocumented, ['verify_emails'], 'a schema must never be invented for an unspecified response');
+  for (const name of undocumented) {
+    assert.equal(listed.find((tool) => tool.name === name).outputSchema, undefined);
+  }
   await close();
 });
 
@@ -279,5 +318,61 @@ test('check_api_key reports the plan and quota of a configured key', async () =>
   assert.equal(calls[0].url, 'https://api.zactonz.com/auth/me/');
   assert.equal(calls[0].headers.Authorization, 'Bearer zk_qr_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   assert.equal(unknown.isError, true);
+  await close();
+});
+
+test('warns about third-party text on every tool that returns it', async () => {
+  const flagged = tools
+    .filter((tool) => tool.untrusted)
+    .map((tool) => tool.name)
+    .sort();
+
+  assert.deepEqual(flagged, ['convert_html_to_markdown', 'preview_link', 'read_qr_code', 'read_webpage']);
+
+  // read_webpage and convert_html_to_markdown return the same fields from the
+  // same third-party markup, so one cannot carry the warning without the other.
+  const fields = (name) => Object.keys(tools.find((tool) => tool.name === name).outputSchema.properties).sort();
+  assert.deepEqual(fields('convert_html_to_markdown'), fields('read_webpage'));
+});
+
+test('offers a reference resource for each tool it offers', async () => {
+  const { client, close } = await connect({ keys: 'zk_domain_abc' });
+
+  const resources = (await client.listResources()).resources;
+
+  assert.deepEqual(
+    resources.map((resource) => resource.uri).sort(),
+    ['zactonz://tools/inspect_ssl_certificate', 'zactonz://tools/lookup_dns', 'zactonz://tools/lookup_whois'],
+    'a reference for a tool the key cannot call would only mislead',
+  );
+  assert.ok(resources.every((resource) => resource.mimeType === 'application/json'));
+  await close();
+});
+
+test('a reference carries what the tool list cannot', async () => {
+  const { client, calls, close } = await connect({ keys: 'zk_domain_abc' });
+
+  const read = await client.readResource({ uri: 'zactonz://tools/lookup_dns' });
+  const reference = JSON.parse(read.contents[0].text);
+
+  assert.equal(reference.endpoint, 'GET /domain/dns/');
+  assert.equal(reference.documentation, 'https://developers.zactonz.com/apis/domain-dns/');
+  assert.deepEqual(
+    reference.statuses.map((status) => status.code),
+    ['400', '401', '403', '429'],
+  );
+  assert.match(
+    reference.statuses.find((status) => status.code === '429').description,
+    /Retry-After/,
+    'an unattended caller should learn how to back off before it has to',
+  );
+  assert.equal(calls.length, 0, 'reading a reference must not spend a unit');
+  await close();
+});
+
+test('refuses a resource that does not exist', async () => {
+  const { client, close } = await connect({ keys: 'zk_domain_abc' });
+
+  await assert.rejects(() => client.readResource({ uri: 'zactonz://tools/nope' }), /Unknown resource/);
   await close();
 });
