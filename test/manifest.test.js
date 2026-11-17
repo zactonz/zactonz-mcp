@@ -49,3 +49,41 @@ test('the release workflow publishes the manifest, not just the package', () => 
     'a mutable download URL would defeat the signature check, which pins one tag',
   );
 });
+
+test('the deprecation workflow cannot be aimed at every version, or made to run shell', () => {
+  const workflow = read('.github/workflows/deprecate.yml');
+
+  // `npm deprecate pkg@*` deprecates everything ever published, and the
+  // version arrives from whoever starts the run, so it is checked first.
+  assert.match(
+    workflow,
+    /\^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+/,
+    'the version must be checked against one exact version',
+  );
+  assert.match(workflow, /npm deprecate "@zactonz\/mcp\$\{?VERSION\}?"|npm deprecate "@zactonz\/mcp@\$VERSION"/);
+  // Both inputs reach the script as environment variables. Interpolating them
+  // into the run block would let a message run as shell.
+  assert.doesNotMatch(
+    workflow.split('run: npm deprecate')[1] ?? '',
+    /\$\{\{/,
+    'inputs must not be interpolated into the command',
+  );
+  assert.match(workflow, /MESSAGE: \$\{\{ inputs\.message \}\}/, 'the message is passed as an environment variable');
+  assert.match(workflow, /timeout-minutes:/, 'a stuck job must fail rather than run for six hours');
+});
+
+test('the engine floor matches what the dependencies actually require', () => {
+  // @hono/node-server, which the SDK's Node HTTP transport wraps, declares
+  // >=20. 0.2.0 shipped claiming >=18 and could not honour it.
+  assert.equal(pkg.engines.node, '>=20');
+  assert.doesNotMatch(
+    read('README.md'),
+    /Node\.js 1[0-9] or newer/,
+    'the README must not promise a Node we do not support',
+  );
+  assert.doesNotMatch(
+    read('.github/workflows/ci.yml'),
+    /'18'/,
+    'CI must not claim to verify a version we do not support',
+  );
+});

@@ -1,0 +1,56 @@
+name: Deprecate a version
+
+# The npm credentials live in this repository's secrets rather than on anyone's
+# machine, so a deprecation has to run here too: `npm deprecate` from a laptop
+# answers 404, which is npm's way of refusing an unauthorised write to a scoped
+# package without saying whether the scope exists.
+#
+# Manual on purpose. A deprecation shows up for everyone who installs the
+# package, and it is reversible: run this again with an empty message to lift
+# one.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Exact version, for example 0.2.0'
+        required: true
+        type: string
+      message:
+        description: 'What an installer is told. Empty lifts an existing deprecation.'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deprecate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check the version is one version
+        env:
+          VERSION: ${{ inputs.version }}
+        # npm takes a range here, and `@zactonz/mcp@*` would deprecate every
+        # version ever published. Only an exact version is allowed through.
+        run: |
+          printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || {
+            echo "Refusing \"$VERSION\": give one exact version, not a range."
+            exit 1
+          }
+
+      - name: Deprecate
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          MESSAGE: ${{ inputs.message }}
+        # Both inputs arrive as environment variables rather than through
+        # ${{ }} in the script, so that a message cannot run as shell.
+        run: npm deprecate "@zactonz/mcp@$VERSION" "$MESSAGE"
