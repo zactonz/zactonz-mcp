@@ -1,7 +1,7 @@
 import { createGovernor } from './governor.js';
 import { missingKeyMessage } from './keys.js';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 export const DEFAULT_BASE_URL = 'https://api.zactonz.com';
 
 /** Seconds the request burst limit in front of the API blocks a client for. */
@@ -347,7 +347,8 @@ async function readUpTo(response, maxBytes) {
 }
 
 /**
- * AbortSignal.any() arrived in Node 20; this covers Node 18.
+ * Kept rather than AbortSignal.any(), which rejects a non-signal argument
+ * where this ignores one, and which allocates a signal per call.
  *
  * @param {AbortSignal[]} signals
  * @returns {AbortSignal}

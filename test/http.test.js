@@ -3,7 +3,7 @@ import { request as httpRequest } from 'node:http';
 import { test } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { createApi } from '../src/api.js';
+import { VERSION, createApi } from '../src/api.js';
 import { createGovernor } from '../src/governor.js';
 import { HEALTH_PATH, KEYS_HEADER, MCP_PATH, createHttpServer, listen, readHttpSettings } from '../src/http.js';
 import { parseKeys } from '../src/keys.js';
@@ -109,7 +109,7 @@ test('the health endpoint answers without naming the products that have keys', a
     assert.equal(response.status, 200);
     assert.equal(body.status, 'ok');
     assert.equal(body.name, 'zactonz-mcp');
-    assert.equal(body.version, '0.2.0');
+    assert.equal(body.version, VERSION);
     assert.equal(body.environmentKeys, 12);
     assert.ok(body.apiTools > 0);
     assert.equal(body.tools, undefined, 'the count is named for what it is, not for tools/list');

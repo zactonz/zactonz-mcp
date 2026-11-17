@@ -11,10 +11,13 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # A hung job otherwise runs to the six-hour default. One did, four times
+    # over, which is how Node 18 went unverified through a whole release.
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        node: ['18', '20', '22', '24']
+        node: ['20', '22', '24']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

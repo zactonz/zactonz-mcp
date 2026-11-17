@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.0 - 2026-11-17
+
+### Changed
+
+- **Node 20 is now the minimum.** 0.2.0 said 18 and could not keep that promise:
+  the SDK implements its Node HTTP transport on `@hono/node-server`, which
+  declares `engines: >=20`, and `src/main.js` loads that module even in stdio
+  mode because it reads the HTTP settings from the same file. Node 18 reached
+  end of life in April 2025, so the floor moves rather than the code contorting
+  around it.
+
+  This is a minor rather than a patch release because it narrows what the
+  package supports, even though 0.2.0 never worked on the version it named.
+
+  Found by CI, eventually: `check (18)` had been hanging since the first 0.2.0
+  commit while 20, 22 and 24 passed, and the release workflow pins Node 22, so a
+  green release and an unverified floor version were perfectly compatible. The
+  CI job now has a ten-minute timeout, because four hung jobs ran towards the
+  six-hour default rather than failing and saying so.
+
 ## 0.2.0 - 2026-11-17
 
 Built for callers that are programs rather than people: a self-hosted agent reads

@@ -2,20 +2,20 @@
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server for the [Zactonz APIs](https://developers.zactonz.com/apis/). It lets an AI assistant capture a screenshot of a web page, read a page as Markdown, preview a link, look up DNS, SSL and WHOIS records, check a domain's email setup, verify addresses, generate QR codes, barcodes and social card images, convert images and translate text.
 
-It runs on your machine: over stdio, started by your MCP client, or as a small HTTP service that several agents share. It needs Node.js 18 or newer.
+It runs on your machine: over stdio, started by your MCP client, or as a small HTTP service that several agents share. It needs Node.js 20 or newer.
 
 ## Install
 
 There is nothing to install ahead of time. The client configurations below run
 `npx -y @zactonz/mcp`, which fetches [the package](https://www.npmjs.com/package/@zactonz/mcp) on
-first use and keeps it cached. You need [Node.js](https://nodejs.org) 18 or newer.
+first use and keeps it cached. You need [Node.js](https://nodejs.org) 20 or newer.
 
 Skip to [Setup](#setup) unless you want to run it from a checkout.
 
 ### From source
 
 Useful for pinning a particular commit, working on the server, or running without a registry.
-Needs Node.js 18 or newer and git.
+Needs Node.js 20 or newer and git.
 
 ```bash
 git clone https://github.com/zactonz/zactonz-mcp.git
