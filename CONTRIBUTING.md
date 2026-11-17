@@ -11,6 +11,8 @@ npm run check
 
 `npm run check` verifies the generated files, then runs ESLint, Prettier, the TypeScript checker (over JSDoc types) and the unit tests. All must pass.
 
+`test/smoke.test.js` starts the shipped command as a client or an operator would — over stdio and over HTTP — with a stub on loopback standing in for the API, so it needs no key, spends no quota and reaches no network. It is the only test that goes through `bin/` and `src/main.js`; every other file builds a server in process and would not notice if starting one stopped working.
+
 ## Layout
 
 - `src/api.js` calls the API: keys, retries, time budget, error handling.
