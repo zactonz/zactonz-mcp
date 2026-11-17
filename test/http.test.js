@@ -111,7 +111,8 @@ test('the health endpoint answers without naming the products that have keys', a
     assert.equal(body.name, 'zactonz-mcp');
     assert.equal(body.version, '0.2.0');
     assert.equal(body.environmentKeys, 12);
-    assert.ok(body.tools > 0);
+    assert.ok(body.apiTools > 0);
+    assert.equal(body.tools, undefined, 'the count is named for what it is, not for tools/list');
     assert.deepEqual(body.api, { active: 0, waiting: 0, pausedFor: 0 });
     assert.doesNotMatch(JSON.stringify(body), /\bqr\b|markdown|zk_/);
     assert.equal(server.calls.length, 0, 'a health check must not spend a unit');

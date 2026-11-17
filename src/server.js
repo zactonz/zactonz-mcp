@@ -200,7 +200,16 @@ export function createServer({ keys, api, inlineImageBytes = DEFAULT_INLINE_IMAG
           return failure(`The product must be one of: ${products.join(', ')}.`);
         }
         const reply = await api.call(given.product, 'GET', '/auth/me/', {}, extra.signal);
-        return text(JSON.stringify(reply.body.data ?? {}, null, 2));
+        const status = reply.body.data;
+        /*
+         * No outputSchema, because the endpoint behind this tool has no
+         * specification here and a schema must not be invented. The payload
+         * still goes back as data: a caller reading its own quota in order to
+         * decide something should not have to parse prose for it.
+         */
+        return isRecord(status)
+          ? { content: [{ type: 'text', text: JSON.stringify(status, null, 2) }], structuredContent: status }
+          : text(JSON.stringify(status ?? {}, null, 2));
       }
       const tool = tools.find((entry) => entry.name === name);
       if (!tool) {

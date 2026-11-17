@@ -18,9 +18,9 @@ each tool for free, and can be run once and shared instead of started per client
   keys can share one process. A request that brings none is answered with the
   keys in `ZACTONZ_API_KEYS`, unless `ZACTONZ_MCP_REQUIRE_KEY_HEADER=1`.
 - `GET /healthz`, for a container or an orchestrator to probe. It reports the
-  version, how many tools there are, how many keys the process holds — never
-  which products they are for — and what it is currently sending to the API. It
-  spends nothing.
+  version, how many API-backed tools the build carries, how many keys the process
+  holds — never which products they are for — and what it is currently sending to
+  the API. It spends nothing.
 - Two prompts, `audit_domain` and `check_link`, holding sequences a caller would
   otherwise have to work out for itself. Each is rendered against the tools the
   configured keys can call, so it never names one the caller has no key for, and
@@ -42,9 +42,11 @@ each tool for free, and can be run once and shared instead of started per client
   recovering costs one call rather than all of them.
 - Every tool whose response the API documents now advertises an `outputSchema`,
   generated from the specification, and every call returns `structuredContent`
-  alongside the text. Seventeen of the eighteen tools carry a schema;
-  `verify_emails` does not, because its response is not specified and a schema
-  must not be invented.
+  alongside the text. Seventeen of the nineteen tools `tools/list` returns carry
+  a schema: `verify_emails` does not, because its response is not specified, and
+  neither does `check_api_key`, which the server adds itself and whose endpoint
+  has no specification here. Both return structured content all the same —
+  a schema that was invented rather than documented would be worse than none.
 - A reference resource per tool at `zactonz://tools/<name>`, carrying the endpoint,
   the statuses the API documents for it, whether it returns third-party text, and
   its documentation page. Reading one makes no request and spends no quota, so a

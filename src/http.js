@@ -121,7 +121,10 @@ export function createHttpServer({
           name: 'zactonz-mcp',
           version: VERSION,
           transport: 'http',
-          tools: tools.length,
+          // The build's API-backed tools. Not what a caller is offered, which
+          // depends on the keys it brings, and not what tools/list returns,
+          // which also carries the key check the server adds itself.
+          apiTools: tools.length,
           // The count, never the products: this endpoint has no caller to trust.
           environmentKeys: keys.products.length,
           inFlight,

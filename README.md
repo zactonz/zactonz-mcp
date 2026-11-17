@@ -153,20 +153,20 @@ claude mcp add --transport http zactonz http://127.0.0.1:8808/mcp --header "x-za
 
 ### In a container
 
-Inside a container the server has to bind every interface to be reachable through a port mapping:
-
-```bash
-docker run --rm -p 8808:8808 -e ZACTONZ_MCP_HOST=0.0.0.0 -e ZACTONZ_API_KEYS="zk_screen_…" node:20-alpine npx -y @zactonz/mcp --http
-```
+Inside a container the server has to bind every interface to be reachable through a port mapping. Set
+`ZACTONZ_MCP_HOST=0.0.0.0`, put the keys in `ZACTONZ_API_KEYS`, run the server with `--http`, and
+publish port 8808.
 
 Binding away from loopback makes the server reachable from outside the machine, and it has no
 authentication of its own: a caller is whoever holds a Zactonz key. The server says as much on
 stderr when it starts. Put TLS in front of it, name the hosts it should answer to in
 `ZACTONZ_MCP_ALLOWED_HOSTS`, and consider requiring the key header.
 
-`GET /healthz` answers a liveness probe with the version, how many tools there are, whether the
-process has keys — never which products they are for — and what the process is currently sending to
-the API. It makes no request and spends nothing.
+`GET /healthz` answers a liveness probe with the version, how many API-backed tools the build
+carries, whether the process has keys — never which products they are for — and what the process is
+currently sending to the API. It makes no request and spends nothing. Its `apiTools` count is not
+what a caller is offered: that depends on the keys the caller brings, and `tools/list` also returns
+`check_api_key`.
 
 One cap on outbound calls covers the whole process, not each request, since that is the only place a
 fleet's traffic can be held back: see [Limits and timing](#limits-and-timing).
@@ -214,7 +214,9 @@ Example requests once it is connected:
 
 ## Results
 
-A tool returns the answer twice over: as text for an assistant to read, and as structured content for a caller that would rather not parse anything. Both describe the same payload, and every tool whose response the API documents also advertises an `outputSchema`, so a caller knows the shape before it calls. One endpoint, `verify_emails`, does not document its response, so no schema is promised for it.
+A tool returns the answer twice over: as text for an assistant to read, and as structured content for a caller that would rather not parse anything. Both describe the same payload, and every tool whose response the API documents also advertises an `outputSchema`, so a caller knows the shape before it calls.
+
+Seventeen of the nineteen tools `tools/list` returns carry a schema. The two without are `verify_emails`, whose endpoint does not document its response, and `check_api_key`, which this server adds itself and whose endpoint has no specification here either. Both still return structured content; neither promises a shape, because a schema that was invented rather than documented would be worse than none.
 
 Two things differ from the raw API:
 

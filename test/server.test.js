@@ -315,6 +315,7 @@ test('check_api_key reports the plan and quota of a configured key', async () =>
   const unknown = await client.callTool({ name: 'check_api_key', arguments: { product: 'nope' } });
 
   assert.deepEqual(JSON.parse(text(result)), data);
+  assert.deepEqual(result.structuredContent, data, 'a caller reading its own quota should not have to parse prose');
   assert.equal(calls[0].url, 'https://api.zactonz.com/auth/me/');
   assert.equal(calls[0].headers.Authorization, 'Bearer zk_qr_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
   assert.equal(unknown.isError, true);
@@ -441,5 +442,20 @@ test('a prompt without its argument is refused rather than rendered half-written
 
   await assert.rejects(() => client.getPrompt({ name: 'audit_domain', arguments: {} }), /Missing required argument/);
   await assert.rejects(() => client.getPrompt({ name: 'audit_domain' }), /Missing required argument: domain/);
+  await close();
+});
+
+test('every tool returns structured content, and only a documented response gets a schema', async () => {
+  const { client, close } = await connect({ keys: '' });
+
+  const listed = (await client.listTools()).tools;
+  const without = listed.filter((tool) => !tool.outputSchema).map((tool) => tool.name);
+
+  assert.equal(listed.length, tools.length + 1, 'the generated tools, plus the key check the server adds');
+  assert.deepEqual(
+    without,
+    ['verify_emails', 'check_api_key'],
+    'neither endpoint documents its response, so neither may promise a shape',
+  );
   await close();
 });
