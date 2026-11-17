@@ -34,20 +34,23 @@ test('server.json stays within the registry limits', () => {
   );
 });
 
-test('the release workflow publishes the manifest, not just the package', () => {
-  const workflow = read('.github/workflows/release.yml');
+test('the registry workflow publishes the manifest safely, and releasing does not attempt it', () => {
+  const registry = read('.github/workflows/registry.yml');
+  const release = read('.github/workflows/release.yml');
 
-  // The registry listing went stale between 0.1.0 and 0.2.0 precisely because
-  // releasing only touched npm. If these steps are ever dropped, it drifts again.
-  assert.match(workflow, /mcp-publisher publish/, 'a release must reach the MCP Registry');
-  assert.match(workflow, /mcp-publisher login github-oidc/, 'an organisation namespace needs OIDC');
-  assert.match(workflow, /cosign verify-blob/, 'the publisher binary must be verified before it runs');
-  assert.match(workflow, /MCP_PUBLISHER_VERSION: v\d+\.\d+\.\d+/, 'the publisher version must be pinned');
+  assert.match(registry, /mcp-publisher publish/, 'something must reach the MCP Registry');
+  assert.match(registry, /mcp-publisher login github-oidc/, 'an organisation namespace needs OIDC');
+  assert.match(registry, /cosign verify-blob/, 'the publisher binary must be verified before it runs');
+  assert.match(registry, /MCP_PUBLISHER_VERSION: v\d+\.\d+\.\d+/, 'the publisher version must be pinned');
   assert.doesNotMatch(
-    workflow,
+    registry,
     /releases\/latest\/download/,
     'a mutable download URL would defeat the signature check, which pins one tag',
   );
+  // The reason the two are separate: a scoped npm publish waits in staging, so
+  // at the end of a release the version the manifest names is not installable.
+  assert.match(registry, /npm view "\$package@\$version"/, 'the manifest must not name a version nobody can install');
+  assert.doesNotMatch(release, /mcp-publisher/, 'releasing must not attempt what it cannot finish');
 });
 
 test('the deprecation workflow cannot be aimed at every version, or made to run shell', () => {

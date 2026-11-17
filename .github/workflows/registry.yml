@@ -1,0 +1,81 @@
+name: Publish to the MCP Registry
+
+# Separate from releasing, because the two cannot be done in one pass. A scoped
+# npm publish lands in a staging area that a person has to release on the npm
+# website, so at the moment a release finishes, the version its manifest names
+# is not installable yet and the registry rejects it. That is not bad luck once:
+# it is every release, and a step that always fails teaches people to ignore a
+# red run.
+#
+# So: release publishes to npm, someone releases it there, then this is run.
+# Start it from the tag whose manifest should be published; it reads server.json
+# from whatever ref you pick.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  # Pinned deliberately: the verification below checks the archive against this
+  # tag's signing identity, so the two move together. The mutable
+  # `releases/latest` URL would defeat that check.
+  MCP_PUBLISHER_VERSION: v1.8.1
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The version this manifest names must be installable
+        # The whole reason this workflow exists. Failing here is cheap and says
+        # exactly what to do; publishing a manifest for a version nobody can
+        # install is what leaves the listing wrong.
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./server.json').version")"
+          package="$(node -p "require('./server.json').packages[0].identifier")"
+          named="$(node -p "require('./server.json').packages[0].version")"
+          test "$version" = "$named" || {
+            echo "server.json disagrees with itself: $version at the top, $named in packages[0]."
+            exit 1
+          }
+          echo "Checking $package@$version is on npm."
+          npm view "$package@$version" version || {
+            echo
+            echo "$package@$version is not installable yet."
+            echo "A scoped publish waits in npm's staging area until it is released on npmjs.com."
+            echo "Release it there, then run this again."
+            exit 1
+          }
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Download and verify mcp-publisher
+        run: |
+          set -euo pipefail
+          os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          archive="mcp-publisher_${os}_${arch}.tar.gz"
+          base="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl --fail --location --silent --show-error --output "$archive" "$base/$archive"
+          curl --fail --location --silent --show-error --output "$archive.sigstore.json" "$base/$archive.sigstore.json"
+          cosign verify-blob \
+            --bundle "$archive.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "$archive"
+          tar xzf "$archive" mcp-publisher
+          rm -f "$archive" "$archive.sigstore.json"
+
+      - name: Publish the manifest
+        # OIDC rather than a token: `mcp-publisher login github` cannot publish
+        # to an organisation namespace, and ours is io.github.zactonz/*.
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
