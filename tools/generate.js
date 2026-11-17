@@ -97,10 +97,41 @@ function responseSchema(data, tool) {
     return null;
   }
   if (data.type === 'object' && data.properties) {
-    return { type: 'object', properties: data.properties };
+    return {
+      type: 'object',
+      properties: Object.fromEntries(Object.entries(data.properties).map(([name, field]) => [name, orNull(field)])),
+    };
   }
   const wrapped = tool.wrap ?? 'result';
-  return { type: 'object', properties: { [wrapped]: data }, required: [wrapped] };
+  return { type: 'object', properties: { [wrapped]: orNull(data) }, required: [wrapped] };
+}
+
+/**
+ * Lets a field be null as well as the type the specification gives it.
+ *
+ * No specification here says anything about nullability — not one of them uses
+ * `nullable` — while the API sends null for a field it has no value for: a page
+ * with no byline answers `"byline": null`. The type in the specification is
+ * therefore the type a field has when there is a value, and a schema that
+ * forbids null is not a stricter description of the same API but a wrong one.
+ *
+ * It matters more than a documentation slip would, because an MCP client built
+ * on the SDK validates structured content against the schema the server
+ * advertises and fails the whole call when it does not fit. Measured against
+ * production before this: read_webpage, preview_link and
+ * inspect_ssl_certificate each failed outright on a single null field.
+ *
+ * @param {Record<string, unknown>} field
+ */
+function orNull(field) {
+  if (!field || typeof field !== 'object' || !('type' in field)) {
+    return field;
+  }
+  const type = field.type;
+  if (Array.isArray(type)) {
+    return type.includes('null') ? field : { ...field, type: [...type, 'null'] };
+  }
+  return { ...field, type: [type, 'null'] };
 }
 
 /**

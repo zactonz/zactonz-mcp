@@ -114,7 +114,10 @@ export default [
       "type": "object",
       "properties": {
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Absolute URL of the saved image or PDF, or an error message."
         }
       },
@@ -206,7 +209,10 @@ export default [
       "type": "object",
       "properties": {
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Absolute URL of the saved image or PDF, or an error message."
         }
       },
@@ -309,63 +315,108 @@ export default [
       "type": "object",
       "properties": {
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Final URL."
         },
         "title": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Article title."
         },
         "byline": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Author when declared."
         },
         "excerpt": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Short summary."
         },
         "site_name": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Site name."
         },
         "language": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Page language."
         },
         "image": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Lead image URL."
         },
         "published_time": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Publication date as declared."
         },
         "mode": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "`article` or `full`; falls back to `full` when no article could be isolated."
         },
         "word_count": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Words in the Markdown."
         },
         "length": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Characters in the Markdown."
         },
         "truncated": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether `max_chars` cut the output."
         },
         "markdown": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "The Markdown."
         },
         "rendered": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether a browser was used."
         },
         "from_cache": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the answer came from the cache."
         }
       }
@@ -470,63 +521,108 @@ export default [
       "type": "object",
       "properties": {
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Final URL."
         },
         "title": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Article title."
         },
         "byline": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Author when declared."
         },
         "excerpt": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Short summary."
         },
         "site_name": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Site name."
         },
         "language": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Page language."
         },
         "image": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Lead image URL."
         },
         "published_time": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Publication date as declared."
         },
         "mode": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "`article` or `full`; falls back to `full` when no article could be isolated."
         },
         "word_count": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Words in the Markdown."
         },
         "length": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Characters in the Markdown."
         },
         "truncated": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether `max_chars` cut the output."
         },
         "markdown": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "The Markdown."
         },
         "rendered": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether a browser was used."
         },
         "from_cache": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the answer came from the cache."
         }
       }
@@ -616,104 +712,173 @@ export default [
       "type": "object",
       "properties": {
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "URL as requested."
         },
         "final_url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "URL after redirects."
         },
         "status": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "HTTP status of the page."
         },
         "title": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Best title from Open Graph, Twitter or the title tag."
         },
         "description": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Best description."
         },
         "site_name": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Site name."
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Open Graph type."
         },
         "canonical": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Canonical URL."
         },
         "image": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Preview image: `url`, `width`, `height`, `alt`, `type`, and with `verify_image` also `verified` and `bytes`."
         },
         "favicon": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Best icon URL."
         },
         "icons": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "All declared icons with `rel`, `sizes` and `type`.",
           "items": {
             "type": "object"
           }
         },
         "language": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Value of `<html lang>`."
         },
         "locale": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Open Graph locale."
         },
         "author": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Author."
         },
         "published_time": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Publication date as declared."
         },
         "modified_time": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Modification date as declared."
         },
         "keywords": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Meta keywords.",
           "items": {
             "type": "string"
           }
         },
         "theme_color": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Theme colour."
         },
         "twitter": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`card`, `site`, `creator`."
         },
         "feeds": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "RSS, Atom or JSON feeds with `url`, `type`, `title`.",
           "items": {
             "type": "object"
           }
         },
         "oembed": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "oEmbed endpoint if declared."
         },
         "rendered": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether a browser was used."
         },
         "from_cache": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the answer came from the cache."
         }
       }
@@ -796,19 +961,31 @@ export default [
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Name queried."
         },
         "records": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "One list per type. A and AAAA carry `address`; MX `priority` and `exchange`; TXT `text`; CNAME, NS and PTR `target`; SOA the zone fields; CAA `flags`, `tag`, `value`; SRV `priority`, `weight`, `port`, `target`. Every record has `name` and `ttl`."
         },
         "dnssec": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`ds_records` and `validated_by_resolver`."
         },
         "queried_at": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Timestamp."
         }
       }
@@ -887,67 +1064,115 @@ export default [
       "type": "object",
       "properties": {
         "host": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Host inspected."
         },
         "ip": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Address connected to."
         },
         "port": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Port."
         },
         "connect_ms": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Handshake time in milliseconds."
         },
         "protocol": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Negotiated protocol, for example `TLSv1.3`."
         },
         "cipher": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Negotiated cipher."
         },
         "valid": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "True when the chain is trusted, the name matches and the certificate is within its dates."
         },
         "hostname_match": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the certificate covers `host`."
         },
         "trusted_chain": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the chain verifies against the CA store."
         },
         "chain_error": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Verification error when the chain fails."
         },
         "expired": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the certificate has expired."
         },
         "not_yet_valid": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the certificate is not yet valid."
         },
         "self_signed": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether issuer equals subject."
         },
         "days_remaining": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Days until expiry, negative when expired."
         },
         "certificate": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Leaf certificate: `subject`, `issuer`, `san`, `serial`, `signature_algorithm`, `key_type`, `key_bits`, `not_before_iso`, `not_after_iso`, `fingerprint_sha256`."
         },
         "chain": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Every certificate the server sent, in the same shape.",
           "items": {
             "type": "object"
@@ -1020,57 +1245,93 @@ export default [
       "type": "object",
       "properties": {
         "domain": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registrable domain."
         },
         "source": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "`rdap` or `whois`."
         },
         "registry": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "RDAP base URL or WHOIS server used."
         },
         "registrar": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registrar name."
         },
         "abuse_contact": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registrar abuse email when published."
         },
         "status": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "EPP status codes.",
           "items": {
             "type": "string"
           }
         },
         "created": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registration date."
         },
         "updated": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Last change."
         },
         "expires": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Expiry date."
         },
         "nameservers": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Delegated nameservers.",
           "items": {
             "type": "string"
           }
         },
         "dnssec": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the delegation is signed."
         },
         "raw": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Raw WHOIS text, only with `raw=1` on the fallback path."
         }
       }
@@ -1158,75 +1419,120 @@ export default [
       "type": "object",
       "properties": {
         "domain": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Domain audited."
         },
         "score": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "0 to 100."
         },
         "grade": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "A to F."
         },
         "disposable": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Known disposable-address provider."
         },
         "free_provider": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Consumer webmail provider."
         },
         "mx": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "MX hosts with `priority`, `exchange`, `addresses` and, with `probe=1`, `smtp` (`reachable`, `banner`, `starttls`).",
           "items": {
             "type": "object"
           }
         },
         "spf": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`present`, `record`, `valid`, `all` qualifier, DNS `lookups`, `mechanisms`."
         },
         "dkim": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Keys found: `selector`, `key_type`, `key_bits`, `revoked`, `testing`.",
           "items": {
             "type": "object"
           }
         },
         "dmarc": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`present`, `record`, `policy`, `subdomain_policy`, `pct`, `rua`, `ruf`, `adkim`, `aspf`."
         },
         "mta_sts": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`present`, `record`, fetched `policy`."
         },
         "tls_rpt": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`present`, `record`."
         },
         "bimi": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "`present`, `record`."
         },
         "findings": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Each with `code`, `severity` (`critical`, `warning`, `info`) and `message`.",
           "items": {
             "type": "object"
           }
         },
         "checked_selectors": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Selectors that were queried.",
           "items": {
             "type": "string"
           }
         },
         "checked_at": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Timestamp."
         }
       }
@@ -1387,23 +1693,38 @@ export default [
       "type": "object",
       "properties": {
         "qr": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Absolute URL of the generated image (`png` and `jpg` formats)."
         },
         "text": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Inline SVG markup or the text matrix (`svg` and `text` formats only)."
         },
         "size": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Module size that was applied."
         },
         "accuracy": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Error-correction level as a single letter: `L`, `M`, `Q` or `H`."
         },
         "format": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Output format that was applied."
         }
       }
@@ -1467,7 +1788,10 @@ export default [
       "type": "object",
       "properties": {
         "content": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "The text encoded in the QR code, or an error message for non-200 statuses."
         }
       },
@@ -1582,31 +1906,52 @@ export default [
       "type": "object",
       "properties": {
         "barcode": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Temporary link to the rendered image."
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Symbology used."
         },
         "content": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Value encoded."
         },
         "format": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Image format."
         },
         "width": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Pixel width, null for SVG."
         },
         "height": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Pixel height, null for SVG."
         },
         "expires_in": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "description": "Seconds the link stays valid."
         }
       }
@@ -1739,19 +2084,31 @@ export default [
       "type": "object",
       "properties": {
         "image": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Hosted link to the card."
         },
         "format": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Image format."
         },
         "size": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Pixel size."
         },
         "cached": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether the card came from the cache."
         }
       }
@@ -1896,19 +2253,31 @@ export default [
       "type": "object",
       "properties": {
         "source": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Dimensions, format, byte size, EXIF orientation, animation and alpha of the input."
         },
         "output": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Dimensions, format, byte size and quality of the result. Absent with `info=1`."
         },
         "colors": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "With `info=1`: `dominant` list of `{hex, share}` and the `average` colour."
         },
         "image": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "With `resp=json`: hosted link valid for 24 hours."
         }
       }
@@ -1980,19 +2349,31 @@ export default [
       "type": "object",
       "properties": {
         "source": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Dimensions, format, byte size, EXIF orientation, animation and alpha of the input."
         },
         "output": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Dimensions, format, byte size and quality of the result. Absent with `info=1`."
         },
         "colors": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "With `info=1`: `dominant` list of `{hex, share}` and the `average` colour."
         },
         "image": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "With `resp=json`: hosted link valid for 24 hours."
         }
       }
@@ -2072,15 +2453,24 @@ export default [
       "type": "object",
       "properties": {
         "from": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Source language code that was used."
         },
         "to": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Target language code."
         },
         "text": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "The translated text."
         }
       }
@@ -2130,7 +2520,10 @@ export default [
       "type": "object",
       "properties": {
         "direct_link": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "The direct download URL, or an explanation for non-200 statuses."
         }
       },

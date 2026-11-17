@@ -47,6 +47,13 @@ each tool for free, and can be run once and shared instead of started per client
   neither does `check_api_key`, which the server adds itself and whose endpoint
   has no specification here. Both return structured content all the same —
   a schema that was invented rather than documented would be worse than none.
+  Every field a schema types may also be null, because no specification here
+  says anything about nullability while the API sends null for a field it has no
+  value for. The type in a specification is the type a field has when there is a
+  value, so a schema forbidding null is wrong rather than strict — and an SDK
+  client fails the whole tool call over one, which is how `read_webpage`,
+  `preview_link` and `inspect_ssl_certificate` were found broken against
+  production before a live run held their replies against the schemas.
 - A reference resource per tool at `zactonz://tools/<name>`, carrying the endpoint,
   the statuses the API documents for it, whether it returns third-party text, and
   its documentation page. Reading one makes no request and spends no quota, so a

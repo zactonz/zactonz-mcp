@@ -7,6 +7,7 @@ import { after, before, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Ajv } from 'ajv';
 import { parseKeys } from '../../src/keys.js';
 
 const configured = parseKeys(process.env.ZACTONZ_API_KEYS);
@@ -15,6 +16,26 @@ const skipUnless = (product) => unset || (configured.has(product) ? false : `No 
 const production = !process.env.ZACTONZ_BASE_URL;
 
 let client;
+
+/*
+ * An output schema is generated from a bundled specification, so until a live
+ * reply is held against it nothing has checked that the specification
+ * describes the API. The unit tests cannot: their fixtures were written from
+ * the same specifications, so they agree by construction.
+ *
+ * Two different things are done with a reply here. Its types are asserted,
+ * because a field the schema calls an integer and the API sends as a string is
+ * a defect either way. Its field names are only reported, because a name in
+ * one and not the other may equally be a field that appears for arguments this
+ * run did not send — a judgement, not a verdict.
+ */
+const ajv = new Ajv({ allErrors: true, strict: false });
+/** @type {Map<string, import('ajv').ValidateFunction>} */
+const validators = new Map();
+/** @type {Map<string, Set<string>>} */
+const declared = new Map();
+/** @type {Map<string, Set<string>>} */
+const returned = new Map();
 
 before(async () => {
   if (unset) {
@@ -29,15 +50,52 @@ before(async () => {
       stderr: 'inherit',
     }),
   );
+  for (const tool of (await client.listTools()).tools) {
+    if (!tool.outputSchema) {
+      continue;
+    }
+    validators.set(tool.name, ajv.compile(tool.outputSchema));
+    declared.set(tool.name, new Set(Object.keys(tool.outputSchema.properties ?? {})));
+  }
 });
 
 after(async () => {
   await client?.close();
+  if (unset) {
+    return;
+  }
+  const lines = [];
+  for (const [name, fields] of [...returned].sort()) {
+    const missing = [...(declared.get(name) ?? [])].filter((field) => !fields.has(field));
+    const extra = declared.has(name) ? [...fields].filter((field) => !declared.get(name).has(field)) : [];
+    if (missing.length || extra.length) {
+      lines.push(
+        `  ${name}: ${missing.length ? `declared but absent: ${missing.join(', ')}` : ''}${missing.length && extra.length ? ' | ' : ''}${extra.length ? `returned but undeclared: ${extra.join(', ')}` : ''}`,
+      );
+    }
+  }
+  console.log(
+    lines.length
+      ? `\nFields to reconcile between the specifications and the live API:\n${lines.join('\n')}\n`
+      : '\nEvery declared field was returned, and every returned field was declared.\n',
+  );
 });
 
 async function call(name, args) {
   const result = await client.callTool({ name, arguments: args }, undefined, { timeout: 120000 });
   assert.equal(result.isError, undefined, result.content?.[0]?.text);
+
+  const payload = result.structuredContent;
+  assert.ok(
+    payload !== null && typeof payload === 'object' && !Array.isArray(payload),
+    `${name} returned no structured content`,
+  );
+  returned.set(name, new Set([...(returned.get(name) ?? []), ...Object.keys(payload)]));
+
+  const validate = validators.get(name);
+  if (validate && !validate(payload)) {
+    assert.fail(`${name} answered outside the schema it advertises: ${ajv.errorsText(validate.errors)}`);
+  }
   return result;
 }
 
@@ -133,7 +191,11 @@ test('read_webpage and convert_html_to_markdown', { skip: skipUnless('markdown')
     html: '<article><h1>Invoice 1042</h1><p>Total due: <strong>120 USD</strong>.</p></article>',
     mode: 'full',
   });
-  assert.match(own.content[0].text, /\*\*120 USD\*\*/);
+  // The warning has to come before the text it warns about, on both of these.
+  for (const result of [page, own]) {
+    assert.match(result.content[0].text, /written by a third party/);
+  }
+  assert.match(own.content[1].text, /\*\*120 USD\*\*/);
 });
 
 test('inspect_image and convert_image', { skip: skipUnless('image') }, async () => {

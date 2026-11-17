@@ -121,3 +121,24 @@ test('tools that only look something up are marked read-only', () => {
     assert.ok(!readOnly.includes(name), name);
   }
 });
+
+test('every field an output schema types may also be null', () => {
+  /*
+   * No specification says anything about nullability, and the API sends null
+   * for a field it has no value for. A schema that forbids null is therefore
+   * wrong rather than strict, and an SDK client fails the whole tool call over
+   * one — which is how read_webpage, preview_link and inspect_ssl_certificate
+   * were found broken against production before this rule existed.
+   */
+  for (const tool of tools.filter((entry) => entry.outputSchema)) {
+    for (const [field, schema] of Object.entries(tool.outputSchema.properties)) {
+      if (!('type' in schema)) {
+        continue;
+      }
+      assert.ok(
+        Array.isArray(schema.type) && schema.type.includes('null'),
+        `${tool.name}.${field} is typed ${JSON.stringify(schema.type)}, which a null reply would fail`,
+      );
+    }
+  }
+});
